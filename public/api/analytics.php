@@ -980,7 +980,7 @@ function get_overdue_rows(array $f): array
          FROM reports r
          JOIN departments d ON d.id = r.responsible_department_id
          $whereSql
-         ORDER BY r.fix_due_date ASC
+         ORDER BY days_overdue DESC, r.fix_due_date ASC
          LIMIT 100",
         $types,
         $params,

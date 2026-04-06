@@ -375,7 +375,86 @@ $apiUrl = app_url('api/analytics.php');
     }
     #af-apply:active { transform: translateY(0); }
 
-    /* ── Download buttons ── */
+    
+    /* ═════════ Command Center Row (Risk & Efficiency) ═════════ */
+    .command-center-row .command-center-table-card {
+        background: linear-gradient(145deg, #fff5f6 0%, #ffffff 100%) !important;
+    }
+
+    .command-center-intel-stack {
+        min-height: 100%;
+    }
+
+    .command-center-intel-card {
+        background: linear-gradient(145deg, #f8fafc 0%, #ffffff 100%) !important;
+        border-left: 4px solid #64748b !important;
+        border-radius: 12px !important;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.08) !important;
+        transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+    }
+
+    .command-center-intel-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12) !important;
+    }
+
+    .command-center-intel-offender {
+        border-left-color: #be123c !important;
+        background: linear-gradient(145deg, #fff1f2 0%, #ffffff 100%) !important;
+    }
+
+    .command-center-intel-hotspot {
+        border-left-color: #475569 !important;
+        background: linear-gradient(145deg, #f8fafc 0%, #ffffff 100%) !important;
+    }
+
+    .command-center-intel-quality {
+        border-left-color: #1e3a8a !important;
+        background: linear-gradient(145deg, #f1f5f9 0%, #ffffff 100%) !important;
+    }
+
+    .command-center-gauge {
+        position: relative;
+        height: 24px;
+        overflow: hidden;
+        border-radius: 100px 100px 0 0;
+    }
+
+    .command-center-gauge-track {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 100%);
+        border-radius: 100px 100px 0 0;
+    }
+
+    .command-center-gauge-fill {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 100%;
+        max-width: 100%;
+        background: linear-gradient(90deg, #f43f5e 0%, #1e3a8a 100%);
+        border-radius: 100px 100px 0 0;
+        transition: width 0.25s ease;
+    }
+
+    .command-center-pdf-btn {
+        background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        font-weight: 700 !important;
+    }
+
+    .command-center-pdf-btn:hover {
+        background: linear-gradient(145deg, #0f172a 0%, #020617 100%) !important;
+        color: #ffffff !important;
+    }
+
+    .text-xs {
+        font-size: 0.72rem !important;
+    }
+
+/* ── Download buttons ── */
     #download-csv, #download-pdf {
         border: 1.5px solid #22c55e !important;
         color: #15803d !important;
@@ -668,13 +747,16 @@ $apiUrl = app_url('api/analytics.php');
         </div>
     </div>
 
-    <div class="row g-3 mt-3">
+    <div class="row g-3 mt-3 command-center-row">
         <div class="col-12 col-xl-8">
-            <div class="section-card section-accent-destructive h-100 shadow-sm">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3 class="text-sm fw-bold uppercase m-0">
-                        <i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>Critical Overdue Alerts
-                    </h3>
+            <div class="section-card section-accent-destructive h-100 shadow-sm command-center-table-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h3 class="text-sm fw-bold uppercase m-0">
+                            <i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>Critical Overdue Alerts
+                        </h3>
+                        <p class="text-xs text-muted-foreground mb-0">Prioritized by longest delay to highlight immediate compliance risk.</p>
+                    </div>
                     <span class="badge bg-danger-subtle text-danger rounded-pill px-3" style="font-size: 0.65rem;">ACTION REQUIRED</span>
                 </div>
                 <div class="table-responsive">
@@ -696,33 +778,70 @@ $apiUrl = app_url('api/analytics.php');
         </div>
 
         <div class="col-12 col-xl-4">
-            <div class="analytics-side-stack h-100 d-flex flex-column gap-2">
-                <div class="analytics-side-card p-3 flex-fill shadow-sm" style="background: linear-gradient(145deg, #fff1f2 0%, #ffffff 100%) !important; border-left: 4px solid #e11d48; border-radius: 12px;">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="analytics-side-title text-white px-2 py-1 rounded" style="background: #881337; font-size: 0.6rem; letter-spacing: 0.05em;">QUALITY METRIC</div>
-                        <i class="bi bi-arrow-repeat text-danger"></i>
+            <div class="d-flex flex-column gap-2 h-100 command-center-intel-stack">
+                <div class="row g-2 flex-grow-1">
+                    <div class="col-12 col-md-6 col-xl-6 d-flex">
+                        <div class="analytics-side-card p-3 w-100 d-flex flex-column justify-content-between command-center-intel-card command-center-intel-offender">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="analytics-side-title">Top Offender</div>
+                                <i class="bi bi-building-exclamation text-danger"></i>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-end gap-2">
+                                <div class="min-w-0">
+                                    <div class="fw-bold text-dark text-sm text-truncate" id="intel-top-offender-name">Loading…</div>
+                                    <p class="text-xs text-muted-foreground mb-0">Identifies the department requiring immediate supervisor intervention.</p>
+                                </div>
+                                <div class="h3 fw-bold mb-0 text-dark" id="intel-top-offender-count">0</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="kpi-label text-dark mb-1">Reopened Rate</div>
-                    <div id="reopen-rate" class="h3 fw-bold mb-0 text-dark">0%</div>
-                    <div class="progress mt-2" style="height: 4px;">
-                        <div class="progress-bar bg-danger" role="progressbar" style="width: 0%" id="reopen-progress"></div>
+                    <div class="col-12 col-md-6 col-xl-6 d-flex">
+                        <div class="analytics-side-card p-3 w-100 d-flex flex-column justify-content-between command-center-intel-card command-center-intel-hotspot">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="analytics-side-title">Hotspot</div>
+                                <i class="bi bi-geo-alt-fill text-secondary"></i>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-end gap-2">
+                                <div class="min-w-0">
+                                    <div class="fw-bold text-dark text-sm text-truncate" id="intel-hotspot-name">Loading…</div>
+                                    <p class="text-xs text-muted-foreground mb-0">Pinpoints physical locations with recurring maintenance delays.</p>
+                                </div>
+                                <div class="h3 fw-bold mb-0 text-dark" id="intel-hotspot-count">0</div>
+                            </div>
+                        </div>
                     </div>
-                    <small class="text-muted d-block mt-1" style="font-size: 0.65rem;">Target: < 5%</small>
                 </div>
 
-                <div class="analytics-side-card p-3 flex-fill shadow-sm" style="background: linear-gradient(145deg, #f8fafc 0%, #ffffff 100%) !important; border-left: 4px solid #475569; border-radius: 12px;">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="analytics-side-title text-white px-2 py-1 rounded" style="background: #334155; font-size: 0.6rem; letter-spacing: 0.05em;">TOTAL EVENTS</div>
-                        <i class="bi bi-flag-fill text-secondary"></i>
+                <div class="analytics-side-card p-3 d-flex flex-column justify-content-between command-center-intel-card command-center-intel-quality">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="analytics-side-title">System Quality</div>
+                        <i class="bi bi-shield-check text-primary"></i>
                     </div>
-                    <div class="kpi-label text-dark mb-1">Reopen Events</div>
-                    <div id="reopen-events" class="h3 fw-bold mb-0 text-dark">0</div>
-                    <small class="text-muted d-block mt-1" style="font-size: 0.65rem;">Total cases sent back</small>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <div>
+                                <div class="kpi-label text-dark mb-0">Reopened Rate</div>
+                                <p class="text-xs text-muted-foreground mb-1">Measures the accuracy of initial fixes; higher percentage indicates higher rework.</p>
+                            </div>
+                            <div id="reopen-rate" class="h3 fw-bold mb-0 text-dark">0%</div>
+                        </div>
+                        <div class="command-center-gauge mt-1" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                            <div class="command-center-gauge-track"></div>
+                            <div class="command-center-gauge-fill" id="reopen-progress" style="width: 0%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small class="text-muted" style="font-size: 0.65rem;">Reopen Events</small>
+                            <small class="fw-bold text-dark" id="reopen-events">0</small>
+                        </div>
+                    </div>
+                    <a id="download-compliance-pdf" href="#" class="btn btn-sm mt-2 command-center-pdf-btn d-flex align-items-center justify-content-center gap-2" onclick="document.getElementById('download-pdf')?.click(); return false;" aria-label="Download compliance report as PDF">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        Download Compliance PDF
+                    </a>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="row g-3 mt-2">
       <div class="col-12">
         <div class="section-card chart-card">
@@ -787,8 +906,9 @@ $apiUrl = app_url('api/analytics.php');
                 <div class="analytics-side-title">SLA Overlay</div>
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" role="switch" id="trend-sla-overlay" checked>
-                  <label class="form-check-label text-sm" for="trend-sla-overlay">Show SLA compliance overlay</label>
+                  <label class="form-check-label text-sm" for="trend-sla-overlay" aria-describedby="trend-sla-overlay-desc">Show SLA compliance overlay</label>
                 </div>
+                <small id="trend-sla-overlay-desc" class="text-xs text-muted-foreground d-block mt-1">Displays overall SLA compliance rate on the trend chart.</small>
                 <span id="trend-sla-overlay-status" class="visually-hidden" aria-live="polite"></span>
                 <div class="analytics-side-metric mt-2">
                   <div class="label">Compliance</div>

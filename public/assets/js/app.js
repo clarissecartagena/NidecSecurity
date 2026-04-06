@@ -1455,7 +1455,7 @@ const AnalyticsDashboardPage = {
                 const status = document.getElementById('trend-sla-overlay-status');
                 if (status) {
                     status.textContent = this.trendSlaOverlay
-                        ? 'SLA compliance overlay is enabled'
+                        ? 'SLA compliance overlay is enabled - displaying compliance threshold on trend chart'
                         : 'SLA compliance overlay is disabled';
                 }
             };
@@ -1993,17 +1993,51 @@ const AnalyticsDashboardPage = {
                 const reportNo = r.report_no || '—';
                 const dept = r.department || '—';
                 const due = r.fix_due_date || '—';
-                const days = r.days_overdue == null ? '—' : String(r.days_overdue);
+                const daysNum = Number(r.days_overdue);
+                const days = Number.isFinite(daysNum) ? String(daysNum) : '—';
+                const sevClass = Number.isFinite(daysNum) && daysNum >= 30
+                    ? 'text-bg-danger-subtle text-danger'
+                    : Number.isFinite(daysNum) && daysNum >= 14
+                      ? 'text-bg-warning-subtle text-warning'
+                      : 'text-bg-secondary text-secondary';
+                const sevLabel = Number.isFinite(daysNum) && daysNum >= 30
+                    ? 'Critical'
+                    : Number.isFinite(daysNum) && daysNum >= 14
+                      ? 'High'
+                      : 'Moderate';
                 return `
         <tr>
           <td class="font-mono text-xs">${this.escapeHtml(String(reportNo))}</td>
           <td class="text-muted-foreground">${this.escapeHtml(String(dept))}</td>
           <td class="text-muted-foreground">${this.escapeHtml(String(due))}</td>
-          <td class="font-medium">${this.escapeHtml(String(days))}</td>
+          <td class="font-medium d-flex align-items-center gap-2">
+            <span>${this.escapeHtml(String(days))}</span>
+            <span class="badge ${sevClass}" style="font-size:0.62rem;">${sevLabel}</span>
+          </td>
         </tr>
       `;
             })
             .join('');
+
+        const deptAgg = rows.reduce((acc, r) => {
+            const d = String(r.department || 'Unassigned');
+            if (!acc[d]) acc[d] = 0;
+            acc[d] += 1;
+            return acc;
+        }, {});
+        const topDept = Object.entries(deptAgg).sort((a, b) => b[1] - a[1])[0] || null;
+        this.setTextById('intel-top-offender-name', topDept ? topDept[0] : 'N/A');
+        this.setTextById('intel-top-offender-count', topDept ? String(topDept[1]) : '0');
+
+        const hot = rows.reduce((acc, r) => {
+            const building = String(r.building || r.location || 'Unknown Location');
+            if (!acc[building]) acc[building] = 0;
+            acc[building] += 1;
+            return acc;
+        }, {});
+        const hotEntry = Object.entries(hot).sort((a, b) => Number(b[1]) - Number(a[1]))[0] || null;
+        this.setTextById('intel-hotspot-name', hotEntry ? hotEntry[0] : 'N/A');
+        this.setTextById('intel-hotspot-count', hotEntry ? String(hotEntry[1]) : '0');
     },
 
     renderAdvanced(payload) {
@@ -2216,8 +2250,17 @@ const AnalyticsDashboardPage = {
     },
 
     renderRecurring(data) {
-        this.setTextById('reopen-rate', `${Number(data && data.reopened_rate).toFixed(1) || '0.0'}%`);
+        const rr = Number(data && data.reopened_rate);
+        const reopenRate = Number.isFinite(rr) ? rr : 0;
+        this.setTextById('reopen-rate', `${reopenRate.toFixed(1)}%`);
         this.setTextById('reopen-events', String(Number(data && data.reopen_events) || 0));
+        const gauge = document.getElementById('reopen-progress');
+        if (gauge) {
+            const w = Math.max(0, Math.min(100, reopenRate));
+            gauge.style.width = `${w}%`;
+            const parent = gauge.closest('.command-center-gauge');
+            if (parent) parent.setAttribute('aria-valuenow', String(Math.round(w)));
+        }
 
         const body = document.getElementById('recurring-categories-body');
         if (!body) return;
@@ -2653,7 +2696,7 @@ const AnalyticsDashboardPage = {
         ctx.restore();
 
         if (this.trendSlaOverlay && timeline) {
-            const compliance = Number(timeline.compliance_rate);
+            const compliance = Number(timeline && timeline.compliance_rate);
             if (Number.isFinite(compliance)) {
                 const y2 = padding.t + chartH * (1 - Math.max(0, Math.min(100, compliance)) / 100);
                 ctx.save();
