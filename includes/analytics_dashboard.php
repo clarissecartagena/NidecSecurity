@@ -182,22 +182,22 @@ $apiUrl = app_url('api/analytics.php');
     }
 
     /* 50% colour → white — light enough to read dark text, colour still obvious */
-    .kpi-card-blue  { background: linear-gradient(135deg, #bfdbfe 0%, #dbeafe 55%, #f8fafc 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(59,130,246,0.30), 0 1px 4px rgba(0,0,0,0.06) !important; }
-    .kpi-card-amber { background: linear-gradient(135deg, #fde68a 0%, #fef3c7 55%, #fffdf5 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(217,119,6,0.28),  0 1px 4px rgba(0,0,0,0.06) !important; }
-    .kpi-card-green { background: linear-gradient(135deg, #86efac 0%, #dcfce7 55%, #f8fff9 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(22,163,74,0.28),   0 1px 4px rgba(0,0,0,0.06) !important; }
-    .kpi-card-red   { background: linear-gradient(135deg, #fca5a5 0%, #fee2e2 55%, #fff8f8 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(220,38,38,0.25),  0 1px 4px rgba(0,0,0,0.06) !important; }
-    .kpi-card-cyan  { background: linear-gradient(135deg, #67e8f9 0%, #cffafe 55%, #f0fcff 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(6,182,212,0.28),   0 1px 4px rgba(0,0,0,0.06) !important; }
-    .kpi-card-rose  { background: linear-gradient(135deg, #fda4af 0%, #ffe4e6 55%, #fff8f9 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(225,29,72,0.25),  0 1px 4px rgba(0,0,0,0.06) !important; }
+    .kpi-card-blue  { background: linear-gradient(135deg, #bfdbfe 0%, #dbeafe 55%, #f8fafc 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important; }
+    .kpi-card-amber { background: linear-gradient(135deg, #fde68a 0%, #fef3c7 55%, #fffdf5 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important; }
+    .kpi-card-green { background: linear-gradient(135deg, #86efac 0%, #dcfce7 55%, #f8fff9 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important; }
+    .kpi-card-red   { background: linear-gradient(135deg, #fca5a5 0%, #fee2e2 55%, #fff8f8 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important; }
+    .kpi-card-cyan  { background: linear-gradient(135deg, #67e8f9 0%, #cffafe 55%, #f0fcff 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important; }
+    .kpi-card-rose  { background: linear-gradient(135deg, #fda4af 0%, #ffe4e6 55%, #fff8f9 100%) !important; border: none !important; box-shadow: 0 4px 18px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06) !important; }
 
     .kpi-card:hover {
         transform: translateY(-3px) !important;
     }
-    .kpi-card-blue:hover  { box-shadow: 0 10px 28px rgba(59,130,246,0.40),  0 2px 6px rgba(0,0,0,0.08) !important; }
-    .kpi-card-amber:hover { box-shadow: 0 10px 28px rgba(217,119,6,0.38),   0 2px 6px rgba(0,0,0,0.08) !important; }
-    .kpi-card-green:hover { box-shadow: 0 10px 28px rgba(22,163,74,0.38),    0 2px 6px rgba(0,0,0,0.08) !important; }
-    .kpi-card-red:hover   { box-shadow: 0 10px 28px rgba(220,38,38,0.35),   0 2px 6px rgba(0,0,0,0.08) !important; }
-    .kpi-card-cyan:hover  { box-shadow: 0 10px 28px rgba(6,182,212,0.38),    0 2px 6px rgba(0,0,0,0.08) !important; }
-    .kpi-card-rose:hover  { box-shadow: 0 10px 28px rgba(225,29,72,0.35),   0 2px 6px rgba(0,0,0,0.08) !important; }
+    .kpi-card-blue:hover  { box-shadow: 0 10px 28px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08) !important; }
+    .kpi-card-amber:hover { box-shadow: 0 10px 28px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08) !important; }
+    .kpi-card-green:hover { box-shadow: 0 10px 28px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08) !important; }
+    .kpi-card-red:hover   { box-shadow: 0 10px 28px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08) !important; }
+    .kpi-card-cyan:hover  { box-shadow: 0 10px 28px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08) !important; }
+    .kpi-card-rose:hover  { box-shadow: 0 10px 28px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08) !important; }
 
     /* Dark text on light-gradient cards */
     .kpi-card-blue  .kpi-label, .kpi-card-blue  .kpi-value, .kpi-card-blue  i  { color: #1e40af !important; }
