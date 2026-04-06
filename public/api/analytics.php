@@ -1667,6 +1667,12 @@ function get_comparison_data(array $f): array
 
 $f = build_filters($_GET, $user, $role);
 
+$tab = trim((string) ($_GET['tab'] ?? 'metrics'));
+$allowedTabs = ['metrics', 'trends', 'departmental', 'incident', 'records'];
+if (!in_array($tab, $allowedTabs, true)) {
+    $tab = 'metrics';
+}
+
 $departmentStats = get_department_stats($f);
 $resolutionBreakdown = get_resolution_breakdown($f);
 $slaStats = get_sla_stats($f);
@@ -1731,6 +1737,7 @@ $payload = [
         'department_id' => (int) $f['department_id'],
         'severity' => $f['severity'],
         'status' => $f['status'],
+        'tab' => $tab,
         'role' => $role,
         'department_restricted' => (bool) $f['is_department_restricted'],
     ],

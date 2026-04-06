@@ -88,8 +88,8 @@ $apiUrl = app_url('api/analytics.php');
 
     .kpi-value {
         position: absolute !important;
-        top: 36px !important;    /* Adjust based on card padding */
-        right: 18px !important;  /* Adjust based on card padding */
+        top: 12px !important;
+        right: 12px !important;
         font-size: 1.4rem !important; /* Prominent but fits 6-col row */
         font-weight: 800 !important;
         line-height: 1 !important;
@@ -218,34 +218,30 @@ $apiUrl = app_url('api/analytics.php');
     /* ── Chart section panels — NEUTRAL white container so colored cards pop ──
        Must kill ::before (top accent bar) and ::after (radial gradient overlay)
        because background: #fff alone cannot override pseudo-elements. */
-    [data-tab-panel="trend"]      > .section-card,
-    [data-tab-panel="severity"]   > .section-card,
-    [data-tab-panel="department"] > .section-card,
-    [data-tab-panel="timeline"]   > .section-card,
-    [data-tab-panel="overdue"]    > .section-card {
+    [data-tab-panel="trends"] > .section-card,
+    [data-tab-panel="departmental"] > .section-card,
+    [data-tab-panel="incident"] > .section-card,
+    [data-tab-panel="records"] > .section-card {
         background: #ffffff !important;
         border: 1px solid #e2e8f0 !important;
         box-shadow: 0 2px 16px rgba(0,0,0,0.07) !important;
     }
-    [data-tab-panel="trend"]      > .section-card::before,
-    [data-tab-panel="severity"]   > .section-card::before,
-    [data-tab-panel="department"] > .section-card::before,
-    [data-tab-panel="timeline"]   > .section-card::before,
-    [data-tab-panel="overdue"]    > .section-card::before,
-    [data-tab-panel="trend"]      > .section-card::after,
-    [data-tab-panel="severity"]   > .section-card::after,
-    [data-tab-panel="department"] > .section-card::after,
-    [data-tab-panel="timeline"]   > .section-card::after,
-    [data-tab-panel="overdue"]    > .section-card::after {
+    [data-tab-panel="trends"] > .section-card::before,
+    [data-tab-panel="departmental"] > .section-card::before,
+    [data-tab-panel="incident"] > .section-card::before,
+    [data-tab-panel="records"] > .section-card::before,
+    [data-tab-panel="trends"] > .section-card::after,
+    [data-tab-panel="departmental"] > .section-card::after,
+    [data-tab-panel="incident"] > .section-card::after,
+    [data-tab-panel="records"] > .section-card::after {
         display: none !important;
     }
 
     /* ── Chart wrap: pure white card, strong shadow — floats above the neutral container ── */
-    [data-tab-panel="trend"] .chart-wrap,
-    [data-tab-panel="severity"] .chart-wrap,
-    [data-tab-panel="department"] .chart-wrap,
-    [data-tab-panel="timeline"] .chart-wrap,
-    [data-tab-panel="overdue"] .chart-wrap {
+    [data-tab-panel="trends"] .chart-wrap,
+    [data-tab-panel="departmental"] .chart-wrap,
+    [data-tab-panel="incident"] .chart-wrap,
+    [data-tab-panel="records"] .chart-wrap {
         background: #ffffff !important;
         background-image: none !important;
         border: 1px solid #e2e8f0 !important;
@@ -265,30 +261,25 @@ $apiUrl = app_url('api/analytics.php');
     }
 
     /* ── Side cards: colored per tab theme — NO border, shadow only for depth ── */
-    [data-tab-panel="trend"] .analytics-side-card {
+    [data-tab-panel="trends"] .analytics-side-card {
         background: linear-gradient(145deg, #bfdbfe 0%, #dbeafe 55%, #eff6ff 100%) !important;
         border: none !important;
         box-shadow: 0 6px 22px rgba(59,130,246,0.28), 0 1px 4px rgba(0,0,0,0.07) !important;
     }
-    [data-tab-panel="severity"] .analytics-side-card {
+    [data-tab-panel="incident"] .analytics-side-card {
         background: linear-gradient(145deg, #fde68a 0%, #fef3c7 55%, #fffbeb 100%) !important;
         border: none !important;
         box-shadow: 0 6px 22px rgba(217,119,6,0.26), 0 1px 4px rgba(0,0,0,0.07) !important;
     }
-    [data-tab-panel="department"] .analytics-side-card {
+    [data-tab-panel="departmental"] .analytics-side-card {
         background: linear-gradient(145deg, #67e8f9 0%, #cffafe 55%, #f0f9ff 100%) !important;
         border: none !important;
         box-shadow: 0 6px 22px rgba(6,182,212,0.26), 0 1px 4px rgba(0,0,0,0.07) !important;
     }
-    [data-tab-panel="timeline"] .analytics-side-card {
+    [data-tab-panel="records"] .analytics-side-card {
         background: linear-gradient(145deg, #86efac 0%, #dcfce7 55%, #f0fdf4 100%) !important;
         border: none !important;
         box-shadow: 0 6px 22px rgba(22,163,74,0.26), 0 1px 4px rgba(0,0,0,0.07) !important;
-    }
-    [data-tab-panel="overdue"] .analytics-side-card {
-        background: linear-gradient(145deg, #fca5a5 0%, #fee2e2 55%, #fff1f2 100%) !important;
-        border: none !important;
-        box-shadow: 0 6px 22px rgba(220,38,38,0.22), 0 1px 4px rgba(0,0,0,0.07) !important;
     }
 
     /* ── Side card title badge ── */
@@ -302,16 +293,10 @@ $apiUrl = app_url('api/analytics.php');
         border-radius: 20px !important;
         margin-bottom: 0.55rem !important;
     }
-    [data-tab-panel="trend"] .analytics-side-title      { background: #1d4ed8; color: #fff !important; }
-    [data-tab-panel="severity"] .analytics-side-title   { background: #b45309; color: #fff !important; }
-    [data-tab-panel="department"] .analytics-side-title { background: #0e7490; color: #fff !important; }
-    [data-tab-panel="timeline"] .analytics-side-title   { background: #15803d; color: #fff !important; }
-    [data-tab-panel="overdue"] .analytics-side-title    { background: #b91c1c; color: #fff !important; }
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 2px 14px rgba(0,0,0,0.07);
-    }
+    [data-tab-panel="trends"] .analytics-side-title      { background: #1d4ed8; color: #fff !important; }
+    [data-tab-panel="incident"] .analytics-side-title   { background: #b45309; color: #fff !important; }
+    [data-tab-panel="departmental"] .analytics-side-title { background: #0e7490; color: #fff !important; }
+    [data-tab-panel="records"] .analytics-side-title   { background: #15803d; color: #fff !important; }
 
     /* Side info cards — base style (per-tab rules below override color/shadow) */
     .analytics-side-card {
@@ -330,35 +315,30 @@ $apiUrl = app_url('api/analytics.php');
     }
 
     /* Per-tab insight card colors + matching left bar */
-    [data-tab-panel="trend"] .insight-card {
+    [data-tab-panel="trends"] .insight-card {
         background: linear-gradient(145deg, #bfdbfe 0%, #dbeafe 55%, #eff6ff 100%) !important;
         box-shadow: 0 6px 20px rgba(59,130,246,0.22), 0 1px 4px rgba(0,0,0,0.07) !important;
     }
-    [data-tab-panel="trend"] .insight-card::before { background-color: #1d4ed8 !important; }
+    [data-tab-panel="trends"] .insight-card::before { background-color: #1d4ed8 !important; }
 
-    [data-tab-panel="severity"] .insight-card {
+    [data-tab-panel="incident"] .insight-card {
         background: linear-gradient(145deg, #fde68a 0%, #fef3c7 55%, #fffbeb 100%) !important;
         box-shadow: 0 6px 20px rgba(217,119,6,0.22), 0 1px 4px rgba(0,0,0,0.07) !important;
     }
-    [data-tab-panel="severity"] .insight-card::before { background-color: #b45309 !important; }
+    [data-tab-panel="incident"] .insight-card::before { background-color: #b45309 !important; }
 
-    [data-tab-panel="department"] .insight-card {
+    [data-tab-panel="departmental"] .insight-card {
         background: linear-gradient(145deg, #67e8f9 0%, #cffafe 55%, #f0f9ff 100%) !important;
         box-shadow: 0 6px 20px rgba(6,182,212,0.22), 0 1px 4px rgba(0,0,0,0.07) !important;
     }
-    [data-tab-panel="department"] .insight-card::before { background-color: #0e7490 !important; }
+    [data-tab-panel="departmental"] .insight-card::before { background-color: #0e7490 !important; }
 
-    [data-tab-panel="timeline"] .insight-card {
+    [data-tab-panel="records"] .insight-card {
         background: linear-gradient(145deg, #86efac 0%, #dcfce7 55%, #f0fdf4 100%) !important;
         box-shadow: 0 6px 20px rgba(22,163,74,0.22), 0 1px 4px rgba(0,0,0,0.07) !important;
     }
-    [data-tab-panel="timeline"] .insight-card::before { background-color: #15803d !important; }
+    [data-tab-panel="records"] .insight-card::before { background-color: #15803d !important; }
 
-    [data-tab-panel="overdue"] .insight-card {
-        background: linear-gradient(145deg, #fca5a5 0%, #fee2e2 55%, #fff1f2 100%) !important;
-        box-shadow: 0 6px 20px rgba(220,38,38,0.20), 0 1px 4px rgba(0,0,0,0.07) !important;
-    }
-    [data-tab-panel="overdue"] .insight-card::before { background-color: #b91c1c !important; }
     /* Overdue table wrapper */
     .table-container.table-card {
         background: linear-gradient(160deg, #fff1f2 0%, #fff8f8 55%, #ffffff 100%) !important;
@@ -374,7 +354,7 @@ $apiUrl = app_url('api/analytics.php');
     }
 
     /* Overdue table header — light red, 50/50 tint */
-    [data-tab-panel="overdue"] thead tr th {
+    [data-tab-panel="metrics"] table thead tr th {
         background: linear-gradient(90deg, #fca5a5 0%, #fee2e2 100%) !important;
         color: #7f1d1d !important;
         border-bottom: 2px solid #f87171 !important;
@@ -612,19 +592,11 @@ $apiUrl = app_url('api/analytics.php');
 
     <!-- Tabs -->
     <div class="tabs-bar" id="analytics-tabs" role="tablist" aria-label="Analytics Sections">
-    <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="metrics">Executive Summary</button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="trend">Report Trend</button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="severity">Severity Distribution</button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="department">Reports by Department</button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="timeline">Timeline Performance</button>
-    <?php if ($isDeepAnalytics): ?>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="dept-performance">Department Performance</button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="resolution-breakdown">Resolution Breakdown</button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="sla-dive">SLA Deep Dive</button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="comparison">Comparative Analysis</button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="building-analysis">Building Analysis</button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="detailed-reports">Detailed Reports</button>
-    <?php endif; ?>
+    <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab-target="metrics">Executive Summary</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab-target="trends">Trends &amp; Timeline</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab-target="departmental">Departmental Insights</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab-target="incident">Incident Analysis</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab-target="records">Data Records</button>
     </div>
 
     <!-- SECTION 1 — KPI PERFORMANCE CARDS -->
@@ -712,10 +684,11 @@ $apiUrl = app_url('api/analytics.php');
                                 <th class="border-0 text-muted small">ID</th>
                                 <th class="border-0 text-muted small">DEPT</th>
                                 <th class="border-0 text-muted small">DUE DATE</th>
+                                <th class="border-0 text-muted small">DAYS OVERDUE</th>
                             </tr>
                         </thead>
                         <tbody id="overdue-body">
-                            <tr><td colspan="3" class="text-center py-4 text-muted small">Loading critical alerts...</td></tr>
+                            <tr><td colspan="4" class="text-center py-4 text-muted small">Loading critical alerts...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -749,14 +722,40 @@ $apiUrl = app_url('api/analytics.php');
             </div>
         </div>
     </div>
-</section>
-  
-    <!-- SECTION 2 — REPORT TREND GRAPH (LINE CHART) -->
-    <section class="analytics-panel hidden" data-tab-panel="trend">
+
+    <div class="row g-3 mt-2">
+      <div class="col-12">
+        <div class="section-card chart-card">
+          <div class="analytics-chart-header">
+            <div>
+              <h2 class="text-lg font-bold text-foreground">Recurring / Reopened Issue Categories</h2>
+              <p class="chart-subtitle">Category-level recurrence ranking for targeted remediation.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Affected Reports</th>
+                  <th>Reopen Events</th>
+                </tr>
+              </thead>
+              <tbody id="recurring-categories-body">
+                <tr><td colspan="3" class="text-center text-muted-foreground">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    </section>
+
+    <section class="analytics-panel hidden" data-tab-panel="trends">
       <div class="section-card section-accent-primary chart-card">
         <div class="analytics-chart-header">
           <div>
-            <h2 class="text-lg font-bold text-foreground">Report Trend</h2>
+            <h2 class="text-lg font-bold text-foreground">Trends &amp; Timeline</h2>
             <p class="chart-subtitle" id="subtitle-trend">Loading…</p>
           </div>
         </div>
@@ -765,6 +764,10 @@ $apiUrl = app_url('api/analytics.php');
           <div class="col-12 col-lg-8">
             <div class="chart-wrap h-100">
               <canvas id="chart-trend" height="320"></canvas>
+            </div>
+            <div class="insight-card hidden mt-3" id="insight-trend" role="status" aria-live="polite">
+              <div class="insight-label">Insight</div>
+              <p class="insight-text" id="caption-trend"></p>
             </div>
           </div>
 
@@ -780,250 +783,74 @@ $apiUrl = app_url('api/analytics.php');
                 <div class="text-sm text-muted-foreground mt-2">Switch time scale to compare patterns.</div>
               </div>
 
-              <div class="insight-card hidden" id="insight-trend" role="status" aria-live="polite">
-                <div class="insight-label">Insight</div>
-                <p class="insight-text" id="caption-trend"></p>
+              <div class="analytics-side-card">
+                <div class="analytics-side-title">SLA Overlay</div>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" role="switch" id="trend-sla-overlay" checked>
+                  <label class="form-check-label text-sm" for="trend-sla-overlay">Show SLA compliance overlay</label>
+                </div>
+                <span id="trend-sla-overlay-status" class="visually-hidden" aria-live="polite"></span>
+                <div class="analytics-side-metric mt-2">
+                  <div class="label">Compliance</div>
+                  <div class="value" id="timeline-rate">N/A</div>
+                </div>
+              </div>
+
+              <div class="analytics-side-card">
+                <div class="analytics-side-title">SLA Snapshot</div>
+                <div class="text-sm text-muted-foreground" id="subtitle-timeline">Loading…</div>
+                <div class="d-flex justify-content-between"><span class="text-sm">Overall SLA</span><span id="sla-overall-rate" class="fw-bold">N/A</span></div>
+                <div class="d-flex justify-content-between"><span class="text-sm">Applicable Cases</span><span id="sla-overall-applicable" class="fw-bold">0</span></div>
+                <div class="d-flex justify-content-between"><span class="text-sm">Violations</span><span id="sla-overall-violations" class="fw-bold">0</span></div>
               </div>
             </div>
           </div>
         </div>
+        <div class="insight-card hidden mt-3" id="insight-timeline" role="status" aria-live="polite">
+          <div class="insight-label">Insight</div>
+          <p class="insight-text" id="caption-timeline"></p>
+        </div>
       </div>
     </section>
 
-    <section class="analytics-panel hidden" data-tab-panel="severity">
-      <div class="section-card section-accent-warning chart-card">
+    <section class="analytics-panel hidden" data-tab-panel="departmental">
+      <div class="section-card section-accent-info chart-card">
         <div class="analytics-chart-header">
           <div>
-            <h2 class="text-lg font-bold text-foreground">Severity Distribution</h2>
-            <p class="chart-subtitle" id="subtitle-severity">Loading…</p>
+            <h2 class="text-lg font-bold text-foreground">Departmental Insights</h2>
+            <p class="chart-subtitle" id="subtitle-department">Loading…</p>
           </div>
         </div>
 
         <div class="row g-3 align-items-stretch">
           <div class="col-12 col-lg-7">
             <div class="chart-wrap h-100">
-              <canvas id="chart-severity" height="320"></canvas>
+              <canvas id="chart-department" height="320"></canvas>
+            </div>
+            <div class="insight-card hidden mt-3" id="insight-department" role="status" aria-live="polite">
+              <div class="insight-label">Insight</div>
+              <p class="insight-text" id="caption-department"></p>
             </div>
           </div>
           <div class="col-12 col-lg-5">
-            <div class="analytics-side-stack">
-              <div class="analytics-side-card">
-                <div class="analytics-side-title">Legend</div>
-                <div class="chart-legend" id="severity-legend"></div>
-              </div>
-              <div class="insight-card hidden" id="insight-severity" role="status" aria-live="polite">
-                <div class="insight-label">Insight</div>
-                <p class="insight-text" id="caption-severity"></p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="analytics-panel hidden" data-tab-panel="department">
-      <div class="section-card section-accent-info chart-card">
-        <div class="analytics-chart-header">
-          <div>
-            <h2 class="text-lg font-bold text-foreground">Reports by Department</h2>
-            <p class="chart-subtitle" id="subtitle-department">Loading…</p>
-          </div>
-        </div>
-
-        <div class="row g-3 align-items-stretch">
-          <div class="col-12 col-lg-8">
-            <div class="chart-wrap h-100">
-              <canvas id="chart-department" height="320"></canvas>
-            </div>
-          </div>
-          <div class="col-12 col-lg-4">
-            <div class="analytics-side-stack">
-              <div class="analytics-side-card">
-                <div class="analytics-side-title">Reading</div>
-                <div class="text-sm text-muted-foreground">Highlights the departments contributing most reports within the selected filters.</div>
-              </div>
-
-              <div class="insight-card hidden" id="insight-department" role="status" aria-live="polite">
-                <div class="insight-label">Insight</div>
-                <p class="insight-text" id="caption-department"></p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 5 — TIMELINE PERFORMANCE -->
-    <section class="analytics-panel hidden" data-tab-panel="timeline">
-      <div class="section-card section-accent-success chart-card">
-        <div class="analytics-chart-header">
-          <div>
-            <h2 class="text-lg font-bold text-foreground">Timeline Performance</h2>
-            <p class="chart-subtitle" id="subtitle-timeline">Loading…</p>
-          </div>
-        </div>
-
-        <div class="row g-3 align-items-stretch">
-          <div class="col-12 col-lg-8">
-            <div class="chart-wrap h-100">
-              <canvas id="chart-timeline" height="260"></canvas>
-            </div>
-          </div>
-          <div class="col-12 col-lg-4">
-            <div class="analytics-side-stack">
-              <div class="analytics-side-card">
-                <div class="analytics-side-title">Compliance</div>
-                <div class="analytics-side-metric">
-                  <div class="label">Rate</div>
-                  <div class="value" id="timeline-rate">N/A</div>
-                </div>
-                <div class="text-sm text-muted-foreground mt-2">Measures on-time completion vs. overdue work.</div>
-              </div>
-
-              <div class="insight-card hidden" id="insight-timeline" role="status" aria-live="polite">
-                <div class="insight-label">Insight</div>
-                <p class="insight-text" id="caption-timeline"></p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 6 — OVERDUE ALERT TABLE -->
-    <section class="analytics-panel hidden" data-tab-panel="overdue">
-    <div class="section-card section-accent-destructive chart-card">
-      <div class="analytics-chart-header">
-        <div>
-          <h2 class="text-lg font-bold text-foreground">Overdue Alerts</h2>
-          <p class="chart-subtitle">Items past due while still under fix or returned to department</p>
-        </div>
-      </div>
-
-      <div class="row g-3 align-items-stretch">
-        <div class="col-12 col-xl-8">
-          <div class="table-container table-card h-100" style="--table-accent: var(--destructive);">
             <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Report ID</th>
-                  <th>Department</th>
-                  <th>Due Date</th>
-                  <th>Days Overdue</th>
-                </tr>
-              </thead>
-              <tbody id="overdue-body">
-                <tr><td colspan="4" class="text-center text-muted-foreground">Loading…</td></tr>
-              </tbody>
-            </table>
+              <table class="table table-hover align-middle mb-0" id="dept-performance-table">
+                <thead>
+                  <tr>
+                    <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="department">Department</button></th>
+                    <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="total_reports">Total Reports</button></th>
+                    <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="avg_resolution_days">Avg Resolution (days)</button></th>
+                    <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="sla_compliance">SLA Compliance %</button></th>
+                  </tr>
+                </thead>
+                <tbody id="dept-performance-body">
+                  <tr><td colspan="4" class="text-center text-muted-foreground">Loading…</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-
-        <div class="col-12 col-xl-4">
-          <div class="analytics-side-stack">
-            <div class="analytics-side-card">
-              <div class="analytics-side-title">Action</div>
-              <div class="text-sm text-muted-foreground">Use this list to prioritize follow-ups with departments and verify evidence uploads once fixes are completed.</div>
-            </div>
-            <div class="analytics-side-card">
-              <div class="analytics-side-title">Tip</div>
-              <div class="text-sm text-muted-foreground">Narrow results using filters (date range, building, department) to focus on a specific area.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    </section>
-
-    <?php if ($isDeepAnalytics): ?>
-    <section class="analytics-panel hidden" data-tab-panel="dept-performance">
-      <div class="section-card chart-card">
-        <div class="analytics-chart-header">
-          <div>
-            <h2 class="text-lg font-bold text-foreground">Department Performance Analysis</h2>
-            <p class="chart-subtitle">Sortable performance table for workload, speed, and SLA quality.</p>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0" id="dept-performance-table">
-            <thead>
-              <tr>
-                <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="department">Department</button></th>
-                <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="total_reports">Total Reports</button></th>
-                <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="avg_resolution_days">Avg Resolution (days)</button></th>
-                <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="median_resolution_days">Median (days)</button></th>
-                <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="sla_compliance">SLA Compliance %</button></th>
-                <th><button type="button" class="btn btn-ghost btn-sm p-0" data-dept-sort="overdue_rate">Overdue Rate %</button></th>
-              </tr>
-            </thead>
-            <tbody id="dept-performance-body">
-              <tr><td colspan="6" class="text-center text-muted-foreground">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="analytics-panel hidden" data-tab-panel="resolution-breakdown">
-      <div class="section-card chart-card">
-        <div class="analytics-chart-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div>
-            <h2 class="text-lg font-bold text-foreground">Resolution Time Breakdown</h2>
-            <p class="chart-subtitle">Time-to-resolution buckets for process bottleneck analysis.</p>
-          </div>
-          <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" role="switch" id="resolution-by-dept-toggle">
-            <label class="form-check-label text-sm" for="resolution-by-dept-toggle">Per department</label>
-          </div>
-        </div>
-        <div id="resolution-breakdown-overall"></div>
-        <div id="resolution-breakdown-department" class="hidden"></div>
-      </div>
-    </section>
-
-    <section class="analytics-panel hidden" data-tab-panel="sla-dive">
-      <div class="section-card chart-card">
-        <div class="analytics-chart-header">
-          <div>
-            <h2 class="text-lg font-bold text-foreground">SLA Compliance Deep Dive</h2>
-            <p class="chart-subtitle">Overall SLA status, department-level compliance, and violation hotspots.</p>
-          </div>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-12 col-md-4"><div class="analytics-side-card p-3"><div class="analytics-side-title">Overall SLA</div><div id="sla-overall-rate" class="h4 mb-0">N/A</div></div></div>
-          <div class="col-12 col-md-4"><div class="analytics-side-card p-3"><div class="analytics-side-title">Applicable Cases</div><div id="sla-overall-applicable" class="h4 mb-0">0</div></div></div>
-          <div class="col-12 col-md-4"><div class="analytics-side-card p-3"><div class="analytics-side-title">Violations</div><div id="sla-overall-violations" class="h4 mb-0">0</div></div></div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Worst Departments</th>
-                <th>Applicable</th>
-                <th>On Time</th>
-                <th>Violations</th>
-                <th>Compliance %</th>
-              </tr>
-            </thead>
-            <tbody id="sla-worst-body">
-              <tr><td colspan="5" class="text-center text-muted-foreground">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="analytics-panel hidden" data-tab-panel="comparison">
-      <div class="section-card chart-card">
-        <div class="analytics-chart-header">
-          <div>
-            <h2 class="text-lg font-bold text-foreground">Comparative Analysis</h2>
-            <p class="chart-subtitle">This period vs previous period and department-to-department movement.</p>
-          </div>
-        </div>
-        <div id="comparison-summary" class="mb-3"></div>
+        <div id="comparison-summary" class="mt-3 mb-3"></div>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead>
@@ -1043,43 +870,35 @@ $apiUrl = app_url('api/analytics.php');
       </div>
     </section>
 
-    <section class="analytics-panel hidden" data-tab-panel="recurring">
-      <div class="section-card chart-card">
+    <section class="analytics-panel hidden" data-tab-panel="incident">
+      <div class="section-card section-accent-warning chart-card">
         <div class="analytics-chart-header">
           <div>
-            <h2 class="text-lg font-bold text-foreground">Recurring / Reopened Issues</h2>
-            <p class="chart-subtitle">Detect repeat failures and weak remediation quality.</p>
+            <h2 class="text-lg font-bold text-foreground">Incident Analysis</h2>
+            <p class="chart-subtitle" id="subtitle-severity">Loading…</p>
           </div>
         </div>
-        <div class="row g-3 mb-3">
-          <div class="col-12 col-md-6"><div class="analytics-side-card p-3"><div class="analytics-side-title">Reopened Rate</div><div id="reopen-rate" class="h4 mb-0">0%</div></div></div>
-          <div class="col-12 col-md-6"><div class="analytics-side-card p-3"><div class="analytics-side-title">Reopen Events</div><div id="reopen-events" class="h4 mb-0">0</div></div></div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Affected Reports</th>
-                <th>Reopen Events</th>
-              </tr>
-            </thead>
-            <tbody id="recurring-categories-body">
-              <tr><td colspan="3" class="text-center text-muted-foreground">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
 
-    <section class="analytics-panel hidden" data-tab-panel="building-analysis">
-      <div class="section-card chart-card">
-        <div class="analytics-chart-header">
-          <div>
-            <h2 class="text-lg font-bold text-foreground">Building-Level Analysis</h2>
-            <p class="chart-subtitle">Cross-building workload and performance quality indicators.</p>
+        <div class="row g-3 align-items-stretch mb-3">
+          <div class="col-12 col-lg-6">
+            <div class="chart-wrap h-100">
+              <canvas id="chart-severity" height="320"></canvas>
+            </div>
+            <div class="chart-legend mt-2" id="severity-legend"></div>
+            <div class="insight-card hidden mt-3" id="insight-severity" role="status" aria-live="polite">
+              <div class="insight-label">Insight</div>
+              <p class="insight-text" id="caption-severity"></p>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="chart-wrap h-100 d-flex align-items-center justify-content-center">
+              <canvas id="chart-resolution-type" height="320"></canvas>
+            </div>
+            <div id="resolution-breakdown-overall" class="mt-2"></div>
+            <div id="resolution-breakdown-department" class="hidden"></div>
           </div>
         </div>
+
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead>
@@ -1098,14 +917,18 @@ $apiUrl = app_url('api/analytics.php');
       </div>
     </section>
 
-    <section class="analytics-panel hidden" data-tab-panel="detailed-reports">
+    <section class="analytics-panel hidden" data-tab-panel="records">
       <div class="section-card chart-card">
         <div class="analytics-chart-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
           <div>
-            <h2 class="text-lg font-bold text-foreground">Detailed Report Investigative Table</h2>
-            <p class="chart-subtitle">Sortable table with resolution speed and SLA status for case-level review.</p>
+            <h2 class="text-lg font-bold text-foreground">Data Records</h2>
+            <p class="chart-subtitle">Detailed report archive with advanced filtering from the controls above.</p>
           </div>
-          <div class="text-sm text-muted-foreground" id="detailed-pagination-label">Page 1</div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('download-pdf')?.click()">Export to PDF</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('download-csv')?.click()">Export to Excel</button>
+            <div class="text-sm text-muted-foreground" id="detailed-pagination-label">Page 1</div>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
@@ -1130,7 +953,6 @@ $apiUrl = app_url('api/analytics.php');
         </div>
       </div>
     </section>
-    <?php endif; ?>
 
   </div>
 </main>

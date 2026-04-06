@@ -1406,6 +1406,7 @@ const AnalyticsDashboardPage = {
     lastPayload: null,
     resizeTimer: null,
     activeTab: 'metrics',
+    trendSlaOverlay: true,
     isDeepAnalytics: false,
     deptSort: { key: 'total_reports', dir: 'desc' },
     detailsSort: { key: 'submitted_at', dir: 'desc' },
@@ -1448,6 +1449,25 @@ const AnalyticsDashboardPage = {
             trendSelect.addEventListener('change', () => this.loadAndRender());
         }
 
+        const trendSlaOverlay = document.getElementById('trend-sla-overlay');
+        if (trendSlaOverlay) {
+            const updateTrendSlaStatus = () => {
+                const status = document.getElementById('trend-sla-overlay-status');
+                if (status) {
+                    status.textContent = this.trendSlaOverlay
+                        ? 'SLA compliance overlay is enabled'
+                        : 'SLA compliance overlay is disabled';
+                }
+            };
+            trendSlaOverlay.addEventListener('change', () => {
+                this.trendSlaOverlay = !!trendSlaOverlay.checked;
+                updateTrendSlaStatus();
+                if (this.lastPayload) this.renderCharts(this.lastPayload);
+            });
+            this.trendSlaOverlay = !!trendSlaOverlay.checked;
+            updateTrendSlaStatus();
+        }
+
         // Initial load
         this.loadAndRender();
 
@@ -1468,7 +1488,7 @@ const AnalyticsDashboardPage = {
         const tabsBar = document.getElementById('analytics-tabs');
         if (!tabsBar) return;
 
-        const buttons = Array.from(tabsBar.querySelectorAll('.tab-btn[data-tab]'));
+        const buttons = Array.from(tabsBar.querySelectorAll('.tab-btn[data-tab-target]'));
         if (!buttons.length) return;
 
         const showTab = (tabName, opts) => {
@@ -1483,7 +1503,7 @@ const AnalyticsDashboardPage = {
             });
 
             buttons.forEach((btn) => {
-                const bName = String(btn.getAttribute('data-tab') || '').trim();
+                const bName = String(btn.getAttribute('data-tab-target') || '').trim();
                 const isActive = bName === name;
                 btn.classList.toggle('active', isActive);
                 btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
@@ -1499,9 +1519,9 @@ const AnalyticsDashboardPage = {
         };
 
         tabsBar.addEventListener('click', (e) => {
-            const btn = e.target && e.target.closest ? e.target.closest('.tab-btn[data-tab]') : null;
+            const btn = e.target && e.target.closest ? e.target.closest('.tab-btn[data-tab-target]') : null;
             if (!btn) return;
-            const name = btn.getAttribute('data-tab');
+            const name = btn.getAttribute('data-tab-target');
             showTab(name, { focus: false });
         });
 
@@ -1511,7 +1531,7 @@ const AnalyticsDashboardPage = {
 
             const current =
                 document.activeElement && document.activeElement.closest
-                    ? document.activeElement.closest('.tab-btn[data-tab]')
+                    ? document.activeElement.closest('.tab-btn[data-tab-target]')
                     : null;
             const idx = current ? buttons.indexOf(current) : buttons.findIndex((b) => b.classList.contains('active'));
 
@@ -1525,13 +1545,13 @@ const AnalyticsDashboardPage = {
             if (key === 'Home') next = 0;
             if (key === 'End') next = buttons.length - 1;
 
-            const name = buttons[next].getAttribute('data-tab');
+            const name = buttons[next].getAttribute('data-tab-target');
             showTab(name, { focus: true });
         });
 
         // Ensure a consistent initial state.
         const initialBtn = buttons.find((b) => b.classList.contains('active')) || buttons[0];
-        showTab(initialBtn.getAttribute('data-tab'), { focus: false });
+        showTab(initialBtn.getAttribute('data-tab-target'), { focus: false });
     },
 
     initAdvancedInteractions() {
@@ -1564,22 +1584,6 @@ const AnalyticsDashboardPage = {
             });
         });
 
-        const byDeptToggle = document.getElementById('resolution-by-dept-toggle');
-        if (byDeptToggle) {
-            byDeptToggle.addEventListener('change', () => {
-                const overall = document.getElementById('resolution-breakdown-overall');
-                const perDept = document.getElementById('resolution-breakdown-department');
-                if (!overall || !perDept) return;
-                if (byDeptToggle.checked) {
-                    overall.classList.add('hidden');
-                    perDept.classList.remove('hidden');
-                } else {
-                    perDept.classList.add('hidden');
-                    overall.classList.remove('hidden');
-                }
-            });
-        }
-
         const prevBtn = document.getElementById('detailed-prev');
         const nextBtn = document.getElementById('detailed-next');
         if (prevBtn) {
@@ -1598,7 +1602,7 @@ const AnalyticsDashboardPage = {
     },
 
     isChartTab(tabName) {
-        return ['trend', 'severity', 'department', 'timeline'].includes(String(tabName || ''));
+        return ['trends', 'departmental', 'incident', 'records'].includes(String(tabName || ''));
     },
 
     cssHsl(varName, alpha) {
@@ -2036,7 +2040,7 @@ const AnalyticsDashboardPage = {
         const sorted = this.sortRows(rows || [], this.deptSort.key, this.deptSort.dir);
         if (!sorted.length) {
             body.innerHTML =
-                '<tr><td colspan="6" class="text-center text-muted-foreground">No department performance data.</td></tr>';
+                '<tr><td colspan="4" class="text-center text-muted-foreground">No department performance data.</td></tr>';
             return;
         }
 
@@ -2046,9 +2050,7 @@ const AnalyticsDashboardPage = {
             .map((r) => {
                 const total = Number(r.total_reports) || 0;
                 const avg = r.avg_resolution_days == null ? 'N/A' : Number(r.avg_resolution_days).toFixed(2);
-                const median = r.median_resolution_days == null ? 'N/A' : Number(r.median_resolution_days).toFixed(2);
                 const sla = r.sla_compliance == null ? 'N/A' : Number(r.sla_compliance).toFixed(1) + '%';
-                const overdue = Number(r.overdue_rate || 0).toFixed(1) + '%';
                 const pct = Math.max(2, Math.round((total / maxVolume) * 100));
                 return `
                     <tr>
@@ -2058,9 +2060,7 @@ const AnalyticsDashboardPage = {
                             <div class="metric-inline-bar"><span style="width:${pct}%"></span></div>
                         </td>
                         <td>${avg}</td>
-                        <td>${median}</td>
                         <td>${sla}</td>
-                        <td>${overdue}</td>
                     </tr>
                 `;
             })
@@ -2503,13 +2503,14 @@ const AnalyticsDashboardPage = {
 
     renderCharts(payload) {
         if (!payload) return;
-        this.drawTrend(payload.trend);
+        this.drawTrend(payload.trend, payload.timeline);
         this.drawSeverity(payload.severity_distribution);
         this.drawDepartment(payload.by_department);
         this.drawTimeline(payload.timeline);
+        this.drawResolutionType(payload.resolution_breakdown);
     },
 
-    drawTrend(trend) {
+    drawTrend(trend, timeline) {
         const canvas = document.getElementById('chart-trend');
         const s = this.clear(canvas);
         if (!s) return;
@@ -2650,6 +2651,28 @@ const AnalyticsDashboardPage = {
         ctx.fillStyle = this.cssHsl('--primary');
         ctx.fill();
         ctx.restore();
+
+        if (this.trendSlaOverlay && timeline) {
+            const compliance = Number(timeline.compliance_rate);
+            if (Number.isFinite(compliance)) {
+                const y2 = padding.t + chartH * (1 - Math.max(0, Math.min(100, compliance)) / 100);
+                ctx.save();
+                ctx.setLineDash([6, 4]);
+                ctx.strokeStyle = this.cssHsl('--success', 0.85);
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(padding.l, y2);
+                ctx.lineTo(w - padding.r, y2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = this.cssHsl('--success');
+                ctx.font = this.font(11, 700);
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(`SLA ${compliance.toFixed(1)}%`, w - padding.r, y2 - 4);
+                ctx.restore();
+            }
+        }
 
         // X labels
         ctx.fillStyle = this.cssHsl('--muted-foreground');
@@ -2927,6 +2950,75 @@ const AnalyticsDashboardPage = {
             // (value drawn as pill)
         });
     },
+
+    drawResolutionType(data) {
+        const canvas = document.getElementById('chart-resolution-type');
+        const s = this.clear(canvas);
+        if (!s) return;
+        const { ctx, w, h } = s;
+
+        const buckets = data && data.buckets ? data.buckets : {};
+        const values = [
+            Number(buckets['0_24_hours']) || 0,
+            Number(buckets['1_3_days']) || 0,
+            Number(buckets['3_7_days']) || 0,
+            Number(buckets['7_plus_days']) || 0,
+        ];
+        const labels = ['0-24 Hours', '1-3 Days', '3-7 Days', '7+ Days'];
+        const total = values.reduce((a, b) => a + b, 0);
+        if (total <= 0) {
+            this.drawPlaceholder(canvas, 'No data');
+            return;
+        }
+
+        const colors = [
+            this.cssHsl('--success'),
+            this.cssHsl('--primary'),
+            this.cssHsl('--warning'),
+            this.cssHsl('--destructive'),
+        ];
+        const cx = w / 2;
+        const cy = h / 2;
+        const r = Math.min(w, h) * 0.34;
+        const innerR = r * 0.58;
+        let start = -Math.PI / 2;
+
+        for (let i = 0; i < values.length; i++) {
+            const v = values[i];
+            if (!v) continue;
+            const ang = (v / total) * Math.PI * 2;
+            const end = start + ang;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, r, start, end);
+            ctx.closePath();
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.fill();
+            start = end;
+        }
+
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+
+        ctx.fillStyle = this.cssHsl('--foreground');
+        ctx.font = this.font(16, 700);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(total), cx, cy - 8);
+        ctx.fillStyle = this.cssHsl('--muted-foreground');
+        ctx.font = this.font(11, 500);
+        ctx.fillText('Resolved', cx, cy + 10);
+
+        const legend = labels
+            .map((l, i) => `<div class="legend-item"><span class="legend-swatch" style="background:${colors[i]}"></span><span class="legend-label">${this.escapeHtml(l)}</span><span class="legend-value">${values[i]}</span></div>`)
+            .join('');
+        const holder = document.getElementById('resolution-breakdown-overall');
+        if (holder) holder.innerHTML = `<div class="chart-legend">${legend}</div>`;
+    },
+
 };
 
 // Report Modal Controller
