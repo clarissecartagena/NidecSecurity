@@ -1,0 +1,333 @@
+/* Print-friendly template for Company Memo / Violation Report (browser print-to-PDF).
+   Matches the provided Legal-size PDF layout (no external libraries). */
+
+/* Screen preview: show a Legal sheet centered */
+@media screen {
+    body.print-report-body {
+        background: hsl(var(--muted) / 0.25);
+        padding: 24px;
+    }
+
+    .print-sheet {
+        width: 8.5in;
+        min-height: 14in;
+        margin: 0 auto;
+        background: #fff;
+        border: 1px solid hsl(var(--border));
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .screen-toolbar {
+        width: 8.5in;
+        margin: 0 auto 12px;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+}
+
+/* Print setup */
+@page {
+    size: legal portrait;
+    /* PDF shows ~1.1in left margin and ~1.15in top margin */
+    margin: 1.15in 1.1in 0.85in 1.1in;
+}
+
+@media print {
+    html,
+    body {
+        background: #fff !important;
+    }
+
+    body.print-report-body {
+        padding: 0 !important;
+    }
+
+    .screen-toolbar {
+        display: none !important;
+    }
+
+    .print-sheet {
+        width: auto;
+        min-height: auto;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+    }
+}
+
+/* Base layout */
+.print-sheet {
+    color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    line-height: 1.35;
+}
+
+.memo-sheet {
+    padding: 0;
+}
+
+.memo-header {
+    padding-top: 0;
+}
+
+.memo-header-row {
+    display: flex;
+    align-items: center;
+    gap: 10pt;
+}
+
+.memo-logo-wrap {
+    width: 1.25in;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.memo-logo {
+    display: block;
+    width: 1.1in;
+    height: auto;
+    object-fit: contain;
+}
+
+.memo-header-text {
+    flex: 1;
+    text-align: center;
+}
+
+.memo-h1 {
+    font-size: 11pt;
+    font-weight: 700;
+    letter-spacing: 0.2pt;
+}
+
+.memo-h2 {
+    font-size: 11pt;
+    font-weight: 700;
+    margin-top: 2pt;
+}
+
+.memo-h3 {
+    font-size: 9pt;
+    margin-top: 3pt;
+}
+
+.memo-h4 {
+    font-size: 9pt;
+    margin-top: 2pt;
+}
+
+/* Internal header styling to match the internal PDF templates */
+.memo-header--internal .memo-header-text {
+    font-family: Tahoma, Arial, Helvetica, sans-serif;
+}
+
+.memo-header--internal .memo-h1 {
+    font-size: 12pt;
+    font-weight: 700;
+    letter-spacing: 0.3pt;
+    color: #1f4e79;
+}
+
+.memo-header--internal .memo-h1-aragon {
+    color: #c00000;
+}
+
+.memo-header--internal .memo-h1-rest {
+    color: #1f4e79;
+}
+
+.memo-header--internal .memo-logo-wrap {
+    width: 1.5in;
+}
+
+.memo-header--internal .memo-logo {
+    width: auto;
+    height: 1in;
+    max-width: 1.6in;
+}
+
+.memo-header--internal .memo-h2 {
+    font-size: 12pt;
+    font-weight: 700;
+    margin-top: 0;
+    letter-spacing: 0.3pt;
+    color: #1f4e79;
+}
+
+.memo-header--internal .memo-h3 {
+    font-size: 11pt;
+    font-weight: 700;
+    margin-top: 2pt;
+    letter-spacing: 0.2pt;
+    color: #1f4e79;
+}
+
+.memo-header--internal .memo-h4 {
+    font-size: 9pt;
+    margin-top: 3pt;
+    color: #000;
+}
+
+.memo-body {
+    margin-top: 14pt;
+}
+
+.memo-fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8pt;
+}
+
+.memo-field {
+    display: grid;
+    grid-template-columns: 0.7in 0.18in 1fr;
+    column-gap: 6pt;
+    align-items: start;
+}
+
+.memo-label {
+    font-weight: 700;
+}
+
+.memo-colon {
+    font-weight: 700;
+}
+
+.memo-person {
+    font-size: 10pt;
+}
+
+.memo-person-title {
+    font-size: 10pt;
+}
+
+.memo-field-subject .memo-value {
+    font-weight: 700;
+}
+
+.memo-rule {
+    height: 0;
+    border-top: 2px solid #000;
+    margin: 10pt 0 10pt;
+}
+
+.memo-section {
+    margin-top: 10pt;
+}
+
+.memo-section-title {
+    font-weight: 700;
+    margin-bottom: 2pt;
+}
+
+.memo-text {
+    font-size: 10pt;
+}
+
+/* Summary key/value rows + labeled narrative blocks */
+.memo-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3pt;
+    margin-bottom: 8pt;
+}
+
+.memo-info-row {
+    display: grid;
+    grid-template-columns: 1.25in 1fr;
+    column-gap: 10pt;
+}
+
+.memo-info-label {
+    font-weight: 700;
+}
+
+.memo-info-value {
+    word-break: break-word;
+}
+
+.memo-kv {
+    margin-top: 8pt;
+}
+
+.memo-kv-label {
+    font-weight: 700;
+    margin-bottom: 2pt;
+}
+
+.memo-kv-value {
+    font-size: 10pt;
+}
+
+.memo-ref-list {
+    margin: 4pt 0 0 18pt;
+    padding: 0;
+}
+
+.memo-ref-list li {
+    margin: 2pt 0;
+}
+
+.memo-attached {
+    font-weight: 700;
+    margin-top: 14pt;
+}
+
+.memo-attachment-box {
+    margin-top: 6pt;
+    border: 1px solid #000;
+    height: 2.75in;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.memo-attachment-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.memo-attachment-empty {
+    font-size: 10pt;
+}
+
+.memo-footer {
+    margin-top: 18pt;
+}
+
+.memo-footer-note {
+    font-weight: 700;
+}
+
+.memo-prepared {
+    margin-top: 18pt;
+}
+
+.memo-prepared-label {
+    font-weight: 700;
+}
+
+.memo-prepared-block {
+    margin-top: 10pt;
+}
+
+.memo-prepared-name {
+    font-weight: 700;
+}
+
+.memo-prepared-title {
+    margin-top: 2pt;
+}
+
+.memo-prepared-date {
+    margin-top: 12pt;
+}
