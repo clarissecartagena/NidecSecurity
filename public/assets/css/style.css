@@ -1148,8 +1148,15 @@ body {
 }
 
 /* Security dashboard metric layout (GA-inspired stacked cards) */
+.security-metric-grid {
+    /* Tuned to fit two text lines + large value consistently across breakpoints */
+    --security-metric-min-height: 128px;
+    --security-metric-overlay-size: 5.2rem;
+    --security-metric-value-size: 2.55rem;
+}
+
 .security-metric-grid .security-metric-card {
-    min-height: 128px;
+    min-height: var(--security-metric-min-height);
     border: none;
     border-radius: 12px;
     position: relative;
@@ -1163,13 +1170,13 @@ body {
     position: absolute;
     top: -10px;
     left: -14px;
-    font-size: 5.2rem;
+    font-size: var(--security-metric-overlay-size);
     opacity: 0.1;
     z-index: 1;
 }
 
 .security-metric-grid .security-metric-value {
-    font-size: 2.55rem;
+    font-size: var(--security-metric-value-size);
     font-weight: 800;
     line-height: 1;
     z-index: 2;

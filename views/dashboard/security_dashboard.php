@@ -145,7 +145,9 @@
                     </div>
                     <div class="p-3">
                         <p class="text-xs text-muted-foreground mb-3">Need to file something now? Submit a new security report in one step.</p>
-                        <a class="btn btn-primary w-100" href="<?= htmlspecialchars(app_url('submit-report.php')) ?>">
+                        <a class="btn btn-primary w-100" href="<?= htmlspecialchars(
+                            app_url('submit-report.php'),
+                        ) ?>" aria-label="Submit a new security report">
                             <i class="bi bi-plus-circle me-1"></i> Submit Security Report
                         </a>
                     </div>
