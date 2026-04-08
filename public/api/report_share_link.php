@@ -43,7 +43,7 @@ if ($role === 'department' || $role === 'pic') {
     $params[] = $deptId;
 }
 
-$row = db_fetch_one('SELECT id FROM reports r WHERE r.report_no = ?' . $whereExtra . ' LIMIT 1', '', $params);
+$row = db_fetch_one('SELECT 1 FROM reports r WHERE r.report_no = ?' . $whereExtra . ' LIMIT 1', '', $params);
 if (!$row) {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => 'Report not found']);

@@ -17,11 +17,15 @@ function report_share_token_store_path(): string
 {
     $storageDir = dirname(__DIR__) . '/storage';
     if (!is_dir($storageDir)) {
-        if (!mkdir($storageDir, 0755, true) && !is_dir($storageDir)) {
+        if (!mkdir($storageDir, 0700, true) && !is_dir($storageDir)) {
             throw new RuntimeException('Unable to create report share token storage directory.');
         }
     }
-    return $storageDir . '/report_share_tokens.json';
+    $path = $storageDir . '/report_share_tokens.json';
+    if (is_file($path)) {
+        chmod($path, 0600);
+    }
+    return $path;
 }
 
 function report_share_read_store(): array
@@ -47,6 +51,7 @@ function report_share_write_store(array $store): void
     if ($result === false) {
         throw new RuntimeException('Unable to persist report share tokens.');
     }
+    chmod($path, 0600);
 }
 
 function report_share_read_store_locked($handle): array
@@ -74,6 +79,11 @@ function report_share_write_store_locked($handle, array $store): void
         throw new RuntimeException('Unable to write report share token store.');
     }
     fflush($handle);
+    $meta = stream_get_meta_data($handle);
+    $path = (string) ($meta['uri'] ?? '');
+    if ($path !== '') {
+        chmod($path, 0600);
+    }
 }
 
 function report_share_prune_store(array $store): array
