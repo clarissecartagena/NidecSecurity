@@ -6,6 +6,12 @@ if (!defined('REPORT_SHARE_TOKEN_BYTES')) {
 if (!defined('REPORT_SHARE_TOKEN_HEX_LENGTH')) {
     define('REPORT_SHARE_TOKEN_HEX_LENGTH', REPORT_SHARE_TOKEN_BYTES * 2);
 }
+if (!defined('REPORT_SHARE_MIN_TTL_SECONDS')) {
+    define('REPORT_SHARE_MIN_TTL_SECONDS', 300); // 5 minutes minimum validity
+}
+if (!defined('REPORT_SHARE_MAX_TOKENS')) {
+    define('REPORT_SHARE_MAX_TOKENS', 5000); // keep storage bounded
+}
 
 function report_share_token_store_path(): string
 {
@@ -108,16 +114,16 @@ function report_share_generate_token(string $reportNo, int $ttlSeconds = 604800)
         $store[$token] = [
             'report_no' => $reportNo,
             'created_at' => $now,
-            'expires_at' => $now + max(300, $ttlSeconds),
+            'expires_at' => $now + max(REPORT_SHARE_MIN_TTL_SECONDS, $ttlSeconds),
         ];
 
-        // Keep storage bounded: if many links are generated, keep the most recent 5000
+        // Keep storage bounded: if many links are generated, keep the most recent limit
         // (by expiry) and drop older entries to avoid unbounded growth.
-        if (count($store) > 5000) {
+        if (count($store) > REPORT_SHARE_MAX_TOKENS) {
             uasort($store, static function ($a, $b): int {
                 return (int) ($a['expires_at'] ?? 0) <=> (int) ($b['expires_at'] ?? 0);
             });
-            $store = array_slice($store, -5000, null, true);
+            $store = array_slice($store, -REPORT_SHARE_MAX_TOKENS, null, true);
         }
 
         report_share_write_store_locked($handle, $store);

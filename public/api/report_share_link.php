@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../includes/report_share.php';
 header('Content-Type: application/json; charset=utf-8');
 
 if (!defined('SHARE_LINK_TTL_SECONDS')) {
-    define('SHARE_LINK_TTL_SECONDS', 604800);
+    define('SHARE_LINK_TTL_SECONDS', 604800); // 7 days
 }
 
 if (!isAuthenticated()) {
