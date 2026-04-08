@@ -860,6 +860,163 @@ $apiUrl = app_url('api/analytics.php');
     .row-overdue {
       background: rgba(248, 113, 113, 0.12);
     }
+
+    /* Trends & Timeline history view enhancements */
+    [data-tab-panel="trends"] .trend-history-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.85rem;
+    }
+    .trend-history-filter-group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      padding: 0.3rem;
+      border-radius: 999px;
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+    }
+    .trend-history-pill {
+      border: none;
+      border-radius: 999px;
+      padding: 0.34rem 0.74rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: transparent;
+      color: #334155;
+      transition: all 0.2s ease;
+    }
+    .trend-history-pill.active {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+      color: #fff;
+      box-shadow: 0 6px 14px rgba(29, 78, 216, 0.25);
+    }
+    .trend-history-report-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 0.45rem 0.95rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff !important;
+      text-decoration: none;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #0f766e 100%);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.28);
+    }
+    .trend-history-card {
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      background: linear-gradient(145deg, #e0f2fe 0%, #dbeafe 50%, #eff6ff 100%);
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.14);
+      height: 100%;
+      padding: 0.95rem;
+    }
+    .trend-history-card-title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #0f172a;
+      margin-bottom: 0.35rem;
+    }
+    .trend-history-card-value {
+      font-size: 1.42rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+      margin-bottom: 0.2rem;
+    }
+    .trend-history-card-meta {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #0f766e;
+      margin-bottom: 0.28rem;
+      min-height: 1rem;
+    }
+    .trend-history-card-desc {
+      font-size: 0.7rem;
+      color: #334155;
+      line-height: 1.35;
+      margin-bottom: 0;
+    }
+    .trend-history-progress-track {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.36);
+      margin-bottom: 0.3rem;
+      overflow: hidden;
+    }
+    .trend-history-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      transition: width 0.35s ease;
+    }
+    .trend-history-hero {
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      background: linear-gradient(160deg, #f8fafc 0%, #eff6ff 60%, #ecfeff 100%);
+      box-shadow: 0 8px 24px rgba(30, 64, 175, 0.12);
+      padding: 0.85rem;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+    .trend-history-legend-note {
+      font-size: 0.74rem;
+      color: #334155;
+      font-weight: 600;
+      padding: 0.45rem 0.6rem;
+      border-radius: 8px;
+      background: #e2e8f0;
+    }
+    .trend-history-stage-card {
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      background: linear-gradient(155deg, #f0f9ff 0%, #e2e8f0 100%);
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.11);
+      padding: 0.95rem;
+    }
+    .trend-history-stage-row {
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 0.55rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .trend-history-stage-row:last-child {
+      margin-bottom: 0;
+    }
+    .trend-history-stage-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .trend-history-stage-bar {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .trend-history-stage-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #1d4ed8 0%, #06b6d4 100%);
+      transition: width 0.35s ease;
+    }
+    .trend-history-stage-value {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #0f172a;
+      min-width: 92px;
+      text-align: right;
+    }
 </style>
 
 <main class="main-content">
@@ -1212,62 +1369,99 @@ $apiUrl = app_url('api/analytics.php');
     <!-- Trends & Timeline Tab -->
     <section class="analytics-panel hidden" data-tab-panel="trends">
       <div class="section-card section-accent-primary chart-card">
-        <div class="analytics-chart-header">
+        <div class="trend-history-toolbar">
           <div>
-            <h2 class="text-lg font-bold text-foreground">Trends &amp; Timeline</h2>
-            <p class="chart-subtitle" id="subtitle-trend">Loading…</p>
+            <h2 class="text-lg font-bold text-foreground mb-1">Trends &amp; Timeline</h2>
+            <p class="chart-subtitle mb-0" id="subtitle-trend-history">Loading…</p>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="trend-history-filter-group" id="trend-history-range-filters" role="group" aria-label="Trend timeline range filter">
+              <button type="button" class="trend-history-pill active" data-trend-range="7d">7 Days</button>
+              <button type="button" class="trend-history-pill" data-trend-range="30d">30 Days</button>
+              <button type="button" class="trend-history-pill" data-trend-range="quarterly">Quarterly</button>
+              <button type="button" class="trend-history-pill" data-trend-range="custom">Custom</button>
+            </div>
+            <a id="download-trend-history-pdf" href="#" class="trend-history-report-btn d-inline-flex align-items-center gap-1">
+              <i class="bi bi-file-earmark-bar-graph"></i>
+              Generate Trend History Report
+            </a>
+          </div>
+        </div>
+
+        <div class="row g-3 align-items-stretch mb-2">
+          <div class="col-12 col-lg-4 d-flex">
+            <div class="trend-history-card w-100 d-flex flex-column">
+              <div class="trend-history-card-title">Average Resolution Time</div>
+              <div class="trend-history-card-value" id="trend-history-resolution-time">N/A</div>
+              <div class="trend-history-card-meta" id="trend-history-resolution-delta">Calculating period direction...</div>
+              <p class="trend-history-card-desc">The typical duration from the initial report filing to the confirmed case closure.</p>
+            </div>
+          </div>
+          <div class="col-12 col-lg-4 d-flex">
+            <div class="trend-history-card w-100 d-flex flex-column">
+              <div class="trend-history-card-title">Deadline Success Rate</div>
+              <div class="trend-history-card-value" id="trend-history-deadline-rate">N/A</div>
+              <div class="trend-history-progress-track"><div class="trend-history-progress-fill" id="trend-history-deadline-progress"></div></div>
+              <div class="trend-history-card-meta" id="trend-history-deadline-target">Target alignment pending...</div>
+              <p class="trend-history-card-desc">Percentage of incidents resolved within the officially mandated timeframes.</p>
+            </div>
+          </div>
+          <div class="col-12 col-lg-4 d-flex">
+            <div class="trend-history-card w-100 d-flex flex-column">
+              <div class="trend-history-card-title">Peak Activity Windows</div>
+              <div class="trend-history-card-value" id="trend-history-peak-window">N/A</div>
+              <div class="trend-history-card-meta" id="trend-history-peak-load">Load profile pending...</div>
+              <p class="trend-history-card-desc">Identification of recurring time blocks with the highest volume of reported incidents.</p>
+            </div>
           </div>
         </div>
 
         <div class="row g-3 align-items-stretch">
-          <div class="col-12 col-lg-8">
-            <div class="chart-wrap h-100">
-              <canvas id="chart-trend" height="320"></canvas>
-            </div>
-            <div class="insight-card hidden mt-3" id="insight-trend" role="status" aria-live="polite">
-              <div class="insight-label">Insight</div>
-              <p class="insight-text" id="caption-trend"></p>
-            </div>
-          </div>
-
-          <div class="col-12 col-lg-4">
-            <div class="analytics-side-stack">
-              <div class="analytics-side-card">
-                <div class="analytics-side-title">View</div>
-                <select id="trend-mode" class="form-select form-select-sm w-100">
-                  <option value="daily">Daily (Last 7 Days)</option>
-                  <option value="weekly">Weekly (Last 4 Weeks)</option>
-                  <option value="monthly">Monthly (Last 12 Months)</option>
-                </select>
-                <div class="text-sm text-muted-foreground mt-2">Switch time scale to compare patterns.</div>
+          <div class="col-12">
+            <div class="trend-history-hero">
+              <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <div class="trend-history-card-title mb-0">System Performance Pulse</div>
+                <div class="text-sm text-muted-foreground" id="subtitle-trend-history-context">Loading…</div>
               </div>
-
-              <div class="analytics-side-card">
-                <div class="analytics-side-title">Service Level Agreement Overlay</div>
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" role="switch" id="trend-sla-overlay" checked>
-                  <label class="form-check-label text-sm" for="trend-sla-overlay">Show Service Level Agreement compliance overlay</label>
-                </div>
-                <span id="trend-sla-overlay-status" class="visually-hidden" aria-live="polite"></span>
-                <div class="analytics-side-metric mt-2">
-                  <div class="label">Compliance</div>
-                  <div class="value" id="timeline-rate">N/A</div>
-                </div>
+              <div class="chart-wrap h-100">
+                <canvas id="chart-trend-history-performance" height="320"></canvas>
               </div>
-            
-              <div class="analytics-side-card">
-                <div class="analytics-side-title">Service Level Agreement Snapshot</div>
-                <div class="text-sm text-muted-foreground" id="subtitle-timeline">Loading…</div>
-                <div class="d-flex justify-content-between"><span class="text-sm">Overall Service Level Agreement</span><span id="sla-overall-rate" class="fw-bold">N/A</span></div>
-                <div class="d-flex justify-content-between"><span class="text-sm">Applicable Cases</span><span id="sla-overall-applicable" class="fw-bold">0</span></div>
-                <div class="d-flex justify-content-between"><span class="text-sm">Violations</span><span id="sla-overall-violations" class="fw-bold">0</span></div>
+              <div class="trend-history-legend-note" id="trend-history-chart-legend">
+                The bars show the workload, while the line shows our ability to keep up.
               </div>
             </div>
           </div>
         </div>
-        <div class="insight-card hidden mt-3" id="insight-timeline" role="status" aria-live="polite">
-          <div class="insight-label">Insight</div>
-          <p class="insight-text" id="caption-timeline"></p>
+
+        <div class="row g-3 align-items-stretch mt-1">
+          <div class="col-12">
+            <div class="trend-history-stage-card">
+              <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
+                <div class="trend-history-card-title mb-0">Stage Duration Timeline</div>
+                <div class="text-sm text-muted-foreground">Average hours spent per workflow stage.</div>
+              </div>
+              <div class="trend-history-stage-row">
+                <div class="trend-history-stage-label">Pending</div>
+                <div class="trend-history-stage-bar"><div id="trend-history-stage-pending-fill" class="trend-history-stage-fill"></div></div>
+                <div id="trend-history-stage-pending-value" class="trend-history-stage-value">N/A</div>
+              </div>
+              <div class="trend-history-stage-row">
+                <div class="trend-history-stage-label">Under Review</div>
+                <div class="trend-history-stage-bar"><div id="trend-history-stage-review-fill" class="trend-history-stage-fill"></div></div>
+                <div id="trend-history-stage-review-value" class="trend-history-stage-value">N/A</div>
+              </div>
+              <div class="trend-history-stage-row">
+                <div class="trend-history-stage-label">Final Fix</div>
+                <div class="trend-history-stage-bar"><div id="trend-history-stage-final-fill" class="trend-history-stage-fill"></div></div>
+                <div id="trend-history-stage-final-value" class="trend-history-stage-value">N/A</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="insight-card hidden mt-3" id="insight-trend-history" role="status" aria-live="polite">
+          <div class="insight-label">History Summary</div>
+          <p class="insight-text" id="caption-trend-history"></p>
         </div>
       </div>
     </section>

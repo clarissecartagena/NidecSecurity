@@ -691,6 +691,107 @@ function output_analytics_pdf(array $f, array $kpis, array $rows, array $advance
     echo $pdf;
 }
 
+function output_trend_history_pdf(array $f, array $summary, array $stageDurations, array $trend): void
+{
+    $outlook = (string) ($summary['trend_outlook'] ?? 'Stable');
+    $avg = $summary['avg_resolution_days'] == null ? 'N/A' : number_format((float) $summary['avg_resolution_days'], 1) . ' days';
+    $delta = $summary['avg_resolution_delta_days'];
+    $deltaText =
+        $delta == null
+            ? 'No previous-period baseline was available.'
+            : ((float) $delta < 0
+                ? 'Resolution speed improved by ' . number_format(abs((float) $delta), 1) . ' days versus previous period.'
+                : ((float) $delta > 0
+                    ? 'Resolution speed slowed by ' . number_format(abs((float) $delta), 1) . ' days versus previous period.'
+                    : 'Resolution speed stayed flat versus previous period.'));
+    $deadlineRate =
+        $summary['deadline_success_rate'] == null ? 'N/A' : number_format((float) $summary['deadline_success_rate'], 1) . '%';
+    $peakWindow = (string) ($summary['peak_activity_window'] ?? 'No recurring window identified');
+    $pending = $stageDurations['pending_hours'] == null ? 'N/A' : number_format((float) $stageDurations['pending_hours'], 1) . ' hours';
+    $review =
+        $stageDurations['under_review_hours'] == null
+            ? 'N/A'
+            : number_format((float) $stageDurations['under_review_hours'], 1) . ' hours';
+    $final = $stageDurations['final_fix_hours'] == null ? 'N/A' : number_format((float) $stageDurations['final_fix_hours'], 1) . ' hours';
+    $labels = is_array($trend['labels'] ?? null) ? $trend['labels'] : [];
+    $values = is_array($trend['values'] ?? null) ? $trend['values'] : [];
+    $peakLabel = 'N/A';
+    $peakValue = 0;
+    foreach ($values as $i => $value) {
+        $v = (int) $value;
+        if ($v > $peakValue) {
+            $peakValue = $v;
+            $peakLabel = (string) ($labels[$i] ?? 'N/A');
+        }
+    }
+
+    $lines = [
+        'NIDEC SECURITY MANAGEMENT SYSTEM',
+        'Trend History Report',
+        'Generated: ' . date('Y-m-d H:i:s'),
+        'Report Range: ' . $f['start'] . ' to ' . $f['end'],
+        '',
+        'Trend Outlook: ' . $outlook,
+        'Average Resolution Time: ' . $avg,
+        $deltaText,
+        'Deadline Success Rate: ' . $deadlineRate,
+        'Peak Activity Window: ' . $peakWindow,
+        '',
+        'Stage Duration Timeline',
+        'Pending: ' . $pending,
+        'Under Review: ' . $review,
+        'Final Fix: ' . $final,
+        '',
+        'System Performance Pulse Summary',
+        'Highest workload period: ' . $peakLabel . ' (' . $peakValue . ' reports)',
+        'Bars in the dashboard represent workload volume.',
+        'The line in the dashboard represents ability to keep up.',
+        '',
+        'Management Interpretation',
+        $outlook === 'Improving'
+            ? 'Performance direction is improving and operational pressure is being managed.'
+            : ($outlook === 'Declining'
+                ? 'Performance direction is declining and intervention is recommended.'
+                : 'Performance direction is stable with no major directional movement.'),
+    ];
+
+    $content = "BT /F1 11 Tf 50 760 Td\n";
+    foreach ($lines as $idx => $line) {
+        if ($idx > 0) {
+            $content .= "0 -19 Td\n";
+        }
+        $content .= '(' . _pdf_e($line) . ") Tj\n";
+    }
+    $content .= "ET";
+
+    $objects = [];
+    $objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+    $objects[2] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>';
+    $objects[3] =
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>';
+    $objects[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+    $objects[5] = "<< /Length " . strlen($content) . " >>\nstream\n" . $content . "\nendstream";
+
+    ksort($objects);
+    $pdf = "%PDF-1.4\n";
+    $offsets = [];
+    foreach ($objects as $num => $obj) {
+        $offsets[$num] = strlen($pdf);
+        $pdf .= $num . " 0 obj\n" . $obj . "\nendobj\n";
+    }
+    $xrefPos = strlen($pdf);
+    $pdf .= "xref\n0 6\n0000000000 65535 f \n";
+    for ($i = 1; $i <= 5; $i++) {
+        $pdf .= str_pad((string) ($offsets[$i] ?? 0), 10, '0', STR_PAD_LEFT) . " 00000 n \n";
+    }
+    $pdf .= "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" . $xrefPos . "\n%%EOF";
+
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="trend_history_report_' . date('Ymd_His') . '.pdf"');
+    header('Content-Length: ' . strlen($pdf));
+    echo $pdf;
+}
+
 function build_filters(array $get, array $user, string $role): array
 {
     $allowedSeverities = ['low', 'medium', 'high', 'critical'];
@@ -964,6 +1065,140 @@ function get_timeline_performance(array $f): array
     ];
 }
 
+function get_stage_duration_timeline(array $f): array
+{
+    $row =
+        db_fetch_one(
+            "SELECT
+                AVG(CASE
+                    WHEN gapa.decided_at IS NOT NULL AND gapa.decided_at >= r.submitted_at
+                    THEN TIMESTAMPDIFF(SECOND, r.submitted_at, gapa.decided_at)
+                    ELSE NULL
+                END) AS pending_seconds,
+                AVG(CASE
+                    WHEN gapa.decided_at IS NOT NULL AND sfc.checked_at IS NOT NULL AND sfc.checked_at >= gapa.decided_at
+                    THEN TIMESTAMPDIFF(SECOND, gapa.decided_at, sfc.checked_at)
+                    ELSE NULL
+                END) AS review_seconds,
+                AVG(CASE
+                    WHEN sfc.checked_at IS NOT NULL AND COALESCE(r.resolved_at, sfc.closed_at, sfc.checked_at) >= sfc.checked_at
+                    THEN TIMESTAMPDIFF(SECOND, sfc.checked_at, COALESCE(r.resolved_at, sfc.closed_at, sfc.checked_at))
+                    ELSE NULL
+                END) AS final_seconds
+             FROM reports r
+             LEFT JOIN ga_manager_approvals gapa ON gapa.report_id = r.id
+             LEFT JOIN security_final_checks sfc ON sfc.report_id = r.id
+             {$f['where_sql']}",
+            $f['types'],
+            $f['params'],
+        ) ?:
+        [];
+
+    $pending = $row['pending_seconds'] !== null ? round(((float) $row['pending_seconds']) / 3600, 1) : null;
+    $review = $row['review_seconds'] !== null ? round(((float) $row['review_seconds']) / 3600, 1) : null;
+    $final = $row['final_seconds'] !== null ? round(((float) $row['final_seconds']) / 3600, 1) : null;
+
+    return [
+        'pending_hours' => $pending,
+        'under_review_hours' => $review,
+        'final_fix_hours' => $final,
+    ];
+}
+
+function get_trend_history_summary(array $f, array $timeline): array
+{
+    $current =
+        db_fetch_one(
+            "SELECT AVG(CASE WHEN r.status = 'resolved' THEN TIMESTAMPDIFF(SECOND, r.submitted_at, COALESCE(r.resolved_at, sfc.closed_at, sfc.checked_at)) END) AS avg_resolution_seconds
+             FROM reports r
+             LEFT JOIN security_final_checks sfc ON sfc.report_id = r.id
+             {$f['where_sql']}",
+            $f['types'],
+            $f['params'],
+        ) ?:
+        [];
+    $currentAvgDays =
+        $current['avg_resolution_seconds'] !== null ? round(((float) $current['avg_resolution_seconds']) / 86400, 1) : null;
+
+    $curStart = new DateTime((string) $f['start']);
+    $curEnd = new DateTime((string) $f['end']);
+    $days = $curStart->diff($curEnd)->days + 1;
+    $prevEnd = (clone $curStart)->modify('-1 day');
+    $prevStart = (clone $prevEnd)->modify('-' . max(0, $days - 1) . ' days');
+    $pf = clone_filters_with_period($f, $prevStart->format('Y-m-d'), $prevEnd->format('Y-m-d'));
+
+    $previous =
+        db_fetch_one(
+            "SELECT AVG(CASE WHEN r.status = 'resolved' THEN TIMESTAMPDIFF(SECOND, r.submitted_at, COALESCE(r.resolved_at, sfc.closed_at, sfc.checked_at)) END) AS avg_resolution_seconds
+             FROM reports r
+             LEFT JOIN security_final_checks sfc ON sfc.report_id = r.id
+             {$pf['where_sql']}",
+            $pf['types'],
+            $pf['params'],
+        ) ?:
+        [];
+    $previousAvgDays =
+        $previous['avg_resolution_seconds'] !== null
+            ? round(((float) $previous['avg_resolution_seconds']) / 86400, 1)
+            : null;
+    $avgDelta = $currentAvgDays !== null && $previousAvgDays !== null ? round($currentAvgDays - $previousAvgDays, 1) : null;
+
+    $peak =
+        db_fetch_one(
+            "SELECT DAYNAME(r.submitted_at) AS day_name, HOUR(r.submitted_at) AS hour_block, COUNT(*) AS total_reports
+             FROM reports r
+             {$f['where_sql']}
+             GROUP BY DAYNAME(r.submitted_at), HOUR(r.submitted_at)
+             ORDER BY total_reports DESC, day_name ASC, hour_block ASC
+             LIMIT 1",
+            $f['types'],
+            $f['params'],
+        ) ?:
+        [];
+
+    $peakWindow = 'No recurring window identified';
+    $peakVolume = null;
+    if (!empty($peak)) {
+        $dayName = (string) ($peak['day_name'] ?? 'Unknown');
+        $hour = (int) ($peak['hour_block'] ?? 0);
+        $suffix = $hour >= 12 ? 'PM' : 'AM';
+        $displayHour = $hour % 12;
+        if ($displayHour === 0) {
+            $displayHour = 12;
+        }
+        $peakWindow = sprintf('%s @ %d:00 %s', $dayName, $displayHour, $suffix);
+        $peakVolume = (int) ($peak['total_reports'] ?? 0);
+    }
+
+    $deadlineRate = $timeline['compliance_rate'] ?? null;
+    $rateDelta = null;
+    if ($timeline['fixed_on_time'] !== null || $timeline['fixed_late'] !== null) {
+        $prevTimeline = get_timeline_performance($pf);
+        if ($deadlineRate !== null && $prevTimeline['compliance_rate'] !== null) {
+            $rateDelta = round(((float) $deadlineRate) - ((float) $prevTimeline['compliance_rate']), 1);
+        }
+    }
+
+    $trendStatus = 'Stable';
+    if (($avgDelta !== null && $avgDelta <= -0.2) || ($rateDelta !== null && $rateDelta >= 2.0)) {
+        $trendStatus = 'Improving';
+    } elseif (($avgDelta !== null && $avgDelta >= 0.2) || ($rateDelta !== null && $rateDelta <= -2.0)) {
+        $trendStatus = 'Declining';
+    }
+
+    return [
+        'avg_resolution_days' => $currentAvgDays,
+        'avg_resolution_delta_days' => $avgDelta,
+        'deadline_success_rate' => $deadlineRate !== null ? round((float) $deadlineRate, 1) : null,
+        'deadline_target_rate' => 95.0,
+        'peak_activity_window' => $peakWindow,
+        'peak_activity_volume' => $peakVolume,
+        'trend_outlook' => $trendStatus,
+        'previous_period_start' => $prevStart->format('Y-m-d'),
+        'previous_period_end' => $prevEnd->format('Y-m-d'),
+    ];
+}
+
 function get_overdue_rows(array $f): array
 {
     $whereSql = $f['where_sql'];
@@ -989,149 +1224,33 @@ function get_overdue_rows(array $f): array
 
 function get_trend(string $mode, array $fBase): array
 {
-    $mode = in_array($mode, ['daily', 'weekly', 'monthly'], true) ? $mode : 'daily';
-
-    // Rebuild date window relative to today, keep other filters (dept/severity/status)
+    $mode = in_array($mode, ['daily', 'weekly', 'monthly', 'custom'], true) ? $mode : 'daily';
     $today = new DateTime('now');
-
-    $where = [];
-    $params = [];
-    $types = '';
-
-    // Extract non-date filters from base by reusing its effective dept/sev/status
     $deptId = (int) ($fBase['department_id'] ?? 0);
     $severity = (string) ($fBase['severity'] ?? '');
     $status = (string) ($fBase['status'] ?? '');
+    $building = (string) ($fBase['building'] ?? '');
 
+    $windowType = $mode;
     if ($mode === 'daily') {
         $start = (clone $today)->modify('-6 days')->format('Y-m-d');
         $end = $today->format('Y-m-d');
-        $where[] = 'r.submitted_at >= ?';
-        $params[] = $start . ' 00:00:00';
-        $types .= 's';
-        $where[] = 'r.submitted_at <= ?';
-        $params[] = $end . ' 23:59:59';
-        $types .= 's';
-
-        if ($deptId > 0) {
-            $where[] = 'r.responsible_department_id = ?';
-            $params[] = $deptId;
-            $types .= 'i';
-        }
-        if ($severity !== '') {
-            $where[] = 'r.severity = ?';
-            $params[] = $severity;
-            $types .= 's';
-        }
-        if ($status !== '') {
-            $where[] = 'r.status = ?';
-            $params[] = $status;
-            $types .= 's';
-        }
-
-        $rows = db_fetch_all(
-            "SELECT DATE(r.submitted_at) AS d, COUNT(*) AS c
-             FROM reports r
-             WHERE " .
-                implode(' AND ', $where) .
-                "
-             GROUP BY DATE(r.submitted_at)",
-            $types,
-            $params,
-        );
-
-        $map = [];
-        foreach ($rows as $r) {
-            $map[$r['d']] = (int) $r['c'];
-        }
-
-        $labels = [];
-        $values = [];
-        $cur = new DateTime($start);
-        for ($i = 0; $i < 7; $i++) {
-            $key = $cur->format('Y-m-d');
-            $labels[] = $cur->format('M d');
-            $values[] = (int) ($map[$key] ?? 0);
-            $cur->modify('+1 day');
-        }
-
-        return ['mode' => 'daily', 'labels' => $labels, 'values' => $values];
-    }
-
-    if ($mode === 'weekly') {
+    } elseif ($mode === 'weekly') {
         $start = (clone $today)->modify('-27 days')->format('Y-m-d');
         $end = $today->format('Y-m-d');
-
-        $where[] = 'r.submitted_at >= ?';
-        $params[] = $start . ' 00:00:00';
-        $types .= 's';
-        $where[] = 'r.submitted_at <= ?';
-        $params[] = $end . ' 23:59:59';
-        $types .= 's';
-
-        if ($deptId > 0) {
-            $where[] = 'r.responsible_department_id = ?';
-            $params[] = $deptId;
-            $types .= 'i';
-        }
-        if ($severity !== '') {
-            $where[] = 'r.severity = ?';
-            $params[] = $severity;
-            $types .= 's';
-        }
-        if ($status !== '') {
-            $where[] = 'r.status = ?';
-            $params[] = $status;
-            $types .= 's';
-        }
-
-        $rows = db_fetch_all(
-            "SELECT
-                DATE_SUB(DATE(r.submitted_at), INTERVAL WEEKDAY(r.submitted_at) DAY) AS week_start,
-                COUNT(*) AS c
-             FROM reports r
-             WHERE " .
-                implode(' AND ', $where) .
-                "
-             GROUP BY week_start
-             ORDER BY week_start ASC",
-            $types,
-            $params,
-        );
-
-        $map = [];
-        foreach ($rows as $r) {
-            $map[$r['week_start']] = (int) $r['c'];
-        }
-
-        // Build last 4 week starts (Mon)
-        $wkStart = (clone $today)->modify('-' . ((int) $today->format('N') - 1) . ' days');
-        $wkStart->setTime(0, 0, 0);
-        $wkStart->modify('-3 weeks');
-
-        $labels = [];
-        $values = [];
-        for ($i = 0; $i < 4; $i++) {
-            $key = $wkStart->format('Y-m-d');
-            $labels[] = $wkStart->format('M d');
-            $values[] = (int) ($map[$key] ?? 0);
-            $wkStart->modify('+1 week');
-        }
-
-        return ['mode' => 'weekly', 'labels' => $labels, 'values' => $values];
+    } elseif ($mode === 'monthly') {
+        $start = (clone $today)->modify('first day of this month')->modify('-11 months')->format('Y-m-d');
+        $end = $today->format('Y-m-d');
+    } else {
+        $start = (string) ($fBase['start'] ?? $today->format('Y-m-d'));
+        $end = (string) ($fBase['end'] ?? $today->format('Y-m-d'));
+        $days = (new DateTime($start))->diff(new DateTime($end))->days + 1;
+        $windowType = $days <= 35 ? 'daily' : ($days <= 180 ? 'weekly' : 'monthly');
     }
 
-    // monthly
-    $start = (clone $today)->modify('first day of this month')->modify('-11 months')->format('Y-m-d');
-    $end = $today->format('Y-m-d');
-
-    $where[] = 'r.submitted_at >= ?';
-    $params[] = $start . ' 00:00:00';
-    $types .= 's';
-    $where[] = 'r.submitted_at <= ?';
-    $params[] = $end . ' 23:59:59';
-    $types .= 's';
-
+    $where = ['r.submitted_at >= ?', 'r.submitted_at <= ?'];
+    $params = [$start . ' 00:00:00', $end . ' 23:59:59'];
+    $types = 'ss';
     if ($deptId > 0) {
         $where[] = 'r.responsible_department_id = ?';
         $params[] = $deptId;
@@ -1147,35 +1266,137 @@ function get_trend(string $mode, array $fBase): array
         $params[] = $status;
         $types .= 's';
     }
+    if ($building !== '') {
+        $where[] = 'r.building = ?';
+        $params[] = $building;
+        $types .= 's';
+    }
+    $whereSql = implode(' AND ', $where);
+
+    if ($windowType === 'daily') {
+        $rows = db_fetch_all(
+            "SELECT DATE(r.submitted_at) AS k,
+                    COUNT(*) AS c,
+                    SUM(CASE WHEN r.status = 'resolved' AND r.fix_due_date IS NOT NULL THEN 1 ELSE 0 END) AS applicable,
+                    SUM(CASE WHEN r.status = 'resolved' AND r.fix_due_date IS NOT NULL AND COALESCE(r.resolved_at, sfc.closed_at, sfc.checked_at) <= r.fix_due_date THEN 1 ELSE 0 END) AS on_time
+             FROM reports r
+             LEFT JOIN security_final_checks sfc ON sfc.report_id = r.id
+             WHERE {$whereSql}
+             GROUP BY DATE(r.submitted_at)
+             ORDER BY k ASC",
+            $types,
+            $params,
+        );
+
+        $map = [];
+        foreach ($rows as $r) {
+            $key = (string) ($r['k'] ?? '');
+            $applicable = (int) ($r['applicable'] ?? 0);
+            $onTime = (int) ($r['on_time'] ?? 0);
+            $map[$key] = [
+                'count' => (int) ($r['c'] ?? 0),
+                'rate' => $applicable > 0 ? round(($onTime / $applicable) * 100, 1) : null,
+            ];
+        }
+
+        $labels = [];
+        $values = [];
+        $successRates = [];
+        $cur = new DateTime($start);
+        $endDate = new DateTime($end);
+        while ($cur <= $endDate) {
+            $key = $cur->format('Y-m-d');
+            $labels[] = $cur->format('M d');
+            $values[] = (int) ($map[$key]['count'] ?? 0);
+            $successRates[] = $map[$key]['rate'] ?? null;
+            $cur->modify('+1 day');
+        }
+        return ['mode' => $mode, 'labels' => $labels, 'values' => $values, 'success_rates' => $successRates];
+    }
+
+    if ($windowType === 'weekly') {
+        $rows = db_fetch_all(
+            "SELECT DATE_SUB(DATE(r.submitted_at), INTERVAL WEEKDAY(r.submitted_at) DAY) AS k,
+                    COUNT(*) AS c,
+                    SUM(CASE WHEN r.status = 'resolved' AND r.fix_due_date IS NOT NULL THEN 1 ELSE 0 END) AS applicable,
+                    SUM(CASE WHEN r.status = 'resolved' AND r.fix_due_date IS NOT NULL AND COALESCE(r.resolved_at, sfc.closed_at, sfc.checked_at) <= r.fix_due_date THEN 1 ELSE 0 END) AS on_time
+             FROM reports r
+             LEFT JOIN security_final_checks sfc ON sfc.report_id = r.id
+             WHERE {$whereSql}
+             GROUP BY k
+             ORDER BY k ASC",
+            $types,
+            $params,
+        );
+
+        $map = [];
+        foreach ($rows as $r) {
+            $key = (string) ($r['k'] ?? '');
+            $applicable = (int) ($r['applicable'] ?? 0);
+            $onTime = (int) ($r['on_time'] ?? 0);
+            $map[$key] = [
+                'count' => (int) ($r['c'] ?? 0),
+                'rate' => $applicable > 0 ? round(($onTime / $applicable) * 100, 1) : null,
+            ];
+        }
+
+        $labels = [];
+        $values = [];
+        $successRates = [];
+        $wkStart = new DateTime($start);
+        $wkStart->modify('-' . ((int) $wkStart->format('N') - 1) . ' days');
+        $endWeek = new DateTime($end);
+        $endWeek->modify('-' . ((int) $endWeek->format('N') - 1) . ' days');
+        while ($wkStart <= $endWeek) {
+            $key = $wkStart->format('Y-m-d');
+            $labels[] = $wkStart->format('M d');
+            $values[] = (int) ($map[$key]['count'] ?? 0);
+            $successRates[] = $map[$key]['rate'] ?? null;
+            $wkStart->modify('+1 week');
+        }
+        return ['mode' => $mode, 'labels' => $labels, 'values' => $values, 'success_rates' => $successRates];
+    }
 
     $rows = db_fetch_all(
-        "SELECT DATE_FORMAT(r.submitted_at, '%Y-%m') AS ym, COUNT(*) AS c
+        "SELECT DATE_FORMAT(r.submitted_at, '%Y-%m') AS k,
+                COUNT(*) AS c,
+                SUM(CASE WHEN r.status = 'resolved' AND r.fix_due_date IS NOT NULL THEN 1 ELSE 0 END) AS applicable,
+                SUM(CASE WHEN r.status = 'resolved' AND r.fix_due_date IS NOT NULL AND COALESCE(r.resolved_at, sfc.closed_at, sfc.checked_at) <= r.fix_due_date THEN 1 ELSE 0 END) AS on_time
          FROM reports r
-         WHERE " .
-            implode(' AND ', $where) .
-            "
-         GROUP BY ym
-         ORDER BY ym ASC",
+         LEFT JOIN security_final_checks sfc ON sfc.report_id = r.id
+         WHERE {$whereSql}
+         GROUP BY k
+         ORDER BY k ASC",
         $types,
         $params,
     );
-
     $map = [];
     foreach ($rows as $r) {
-        $map[$r['ym']] = (int) $r['c'];
+        $key = (string) ($r['k'] ?? '');
+        $applicable = (int) ($r['applicable'] ?? 0);
+        $onTime = (int) ($r['on_time'] ?? 0);
+        $map[$key] = [
+            'count' => (int) ($r['c'] ?? 0),
+            'rate' => $applicable > 0 ? round(($onTime / $applicable) * 100, 1) : null,
+        ];
     }
 
     $labels = [];
     $values = [];
+    $successRates = [];
     $cur = new DateTime($start);
-    for ($i = 0; $i < 12; $i++) {
+    $cur->modify('first day of this month');
+    $endMonth = new DateTime($end);
+    $endMonth->modify('first day of this month');
+    while ($cur <= $endMonth) {
         $ym = $cur->format('Y-m');
         $labels[] = $cur->format('M');
-        $values[] = (int) ($map[$ym] ?? 0);
+        $values[] = (int) ($map[$ym]['count'] ?? 0);
+        $successRates[] = $map[$ym]['rate'] ?? null;
         $cur->modify('+1 month');
     }
 
-    return ['mode' => 'monthly', 'labels' => $labels, 'values' => $values];
+    return ['mode' => $mode, 'labels' => $labels, 'values' => $values, 'success_rates' => $successRates];
 }
 
 function clone_filters_with_period(array $f, string $start, string $end): array
@@ -1680,6 +1901,9 @@ $buildingStats = get_building_stats($f);
 $comparisonData = get_comparison_data($f);
 $recurringIssues = get_recurring_issues($f);
 $detailedRows = get_detailed_rows($f);
+$timelinePerformance = get_timeline_performance($f);
+$stageDurations = get_stage_duration_timeline($f);
+$trendHistorySummary = get_trend_history_summary($f, $timelinePerformance);
 
 $advancedSummary = [
     'department_stats' => $departmentStats,
@@ -1688,6 +1912,8 @@ $advancedSummary = [
     'building_stats' => $buildingStats,
     'comparison_data' => $comparisonData,
     'recurring_issues' => $recurringIssues,
+    'stage_durations' => $stageDurations,
+    'trend_history_summary' => $trendHistorySummary,
 ];
 
 $export = trim((string) ($_GET['export'] ?? ''));
@@ -1726,8 +1952,18 @@ if ($export === 'pdf') {
     exit();
 }
 
+if ($export === 'trend_history_pdf') {
+    $trendModeForReport = trim((string) ($_GET['trend'] ?? 'daily'));
+    $trendModeForReport = in_array($trendModeForReport, ['daily', 'weekly', 'monthly', 'custom'], true)
+        ? $trendModeForReport
+        : 'daily';
+    $trend = get_trend($trendModeForReport, $f);
+    output_trend_history_pdf($f, $trendHistorySummary, $stageDurations, $trend);
+    exit();
+}
+
 $trendMode = trim((string) ($_GET['trend'] ?? 'daily'));
-$trendMode = in_array($trendMode, ['daily', 'weekly', 'monthly'], true) ? $trendMode : 'daily';
+$trendMode = in_array($trendMode, ['daily', 'weekly', 'monthly', 'custom'], true) ? $trendMode : 'daily';
 
 $payload = [
     'filters' => [
@@ -1745,7 +1981,9 @@ $payload = [
     'trend' => get_trend($trendMode, $f),
     'severity_distribution' => get_severity_distribution($f),
     'by_department' => get_by_department($f, $role, $user),
-    'timeline' => get_timeline_performance($f),
+    'timeline' => $timelinePerformance,
+    'stage_durations' => $stageDurations,
+    'trend_history_summary' => $trendHistorySummary,
     'overdue' => [
         'rows' => get_overdue_rows($f),
     ],

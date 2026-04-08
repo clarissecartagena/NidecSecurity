@@ -1406,7 +1406,7 @@ const AnalyticsDashboardPage = {
     lastPayload: null,
     resizeTimer: null,
     activeTab: 'metrics',
-    trendSlaOverlay: true,
+    trendMode: 'daily',
     isDeepAnalytics: false,
     deptSort: { key: 'total_reports', dir: 'desc' },
     detailsSort: { key: 'submitted_at', dir: 'desc' },
@@ -1438,7 +1438,6 @@ const AnalyticsDashboardPage = {
 
         const applyBtn = document.getElementById('af-apply');
         const resetBtn = document.getElementById('af-reset');
-        const trendSelect = document.getElementById('trend-mode');
 
         if (applyBtn) {
             applyBtn.addEventListener('click', () => this.loadAndRender());
@@ -1458,29 +1457,7 @@ const AnalyticsDashboardPage = {
             });
         }
 
-        if (trendSelect) {
-            trendSelect.addEventListener('change', () => this.loadAndRender());
-        }
-
-
-        const trendSlaOverlay = document.getElementById('trend-sla-overlay');
-        if (trendSlaOverlay) {
-            const updateTrendSlaStatus = () => {
-                const status = document.getElementById('trend-sla-overlay-status');
-                if (status) {
-                    status.textContent = this.trendSlaOverlay
-                        ? 'Service Level Agreement compliance overlay is enabled - displaying compliance threshold on trend chart'
-                        : 'Service Level Agreement compliance overlay is disabled';
-                }
-            };
-            trendSlaOverlay.addEventListener('change', () => {
-                this.trendSlaOverlay = !!trendSlaOverlay.checked;
-                updateTrendSlaStatus();
-                if (this.lastPayload) this.renderCharts(this.lastPayload);
-            });
-            this.trendSlaOverlay = !!trendSlaOverlay.checked;
-            updateTrendSlaStatus();
-        }
+        this.initTrendHistoryControls();
 
         // Initial load
         this.loadAndRender();
@@ -1496,6 +1473,47 @@ const AnalyticsDashboardPage = {
                 }
             }, 150);
         });
+    },
+
+    initTrendHistoryControls() {
+        const filterWrap = document.getElementById('trend-history-range-filters');
+        if (!filterWrap) return;
+        const buttons = Array.from(filterWrap.querySelectorAll('[data-trend-range]'));
+        if (!buttons.length) return;
+
+        const mapRangeToMode = (range) => {
+            const key = String(range || '').trim();
+            if (key === '7d') return 'daily';
+            if (key === '30d') return 'weekly';
+            if (key === 'quarterly') return 'monthly';
+            if (key === 'custom') return 'custom';
+            return 'daily';
+        };
+
+        const setActive = (range) => {
+            const selected = String(range || '').trim();
+            buttons.forEach((btn) => {
+                const isActive = String(btn.getAttribute('data-trend-range') || '').trim() === selected;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+            this.trendMode = mapRangeToMode(selected);
+        };
+
+        buttons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const range = String(btn.getAttribute('data-trend-range') || '').trim();
+                setActive(range);
+                if (range === 'custom') {
+                    const start = document.getElementById('af-start');
+                    if (start && typeof start.focus === 'function') start.focus();
+                }
+                this.loadAndRender();
+            });
+        });
+
+        const activeBtn = buttons.find((b) => b.classList.contains('active')) || buttons[0];
+        setActive(activeBtn.getAttribute('data-trend-range'));
     },
 
     initTabs() {
@@ -1841,8 +1859,7 @@ const AnalyticsDashboardPage = {
     },
 
     buildRequestUrl() {
-        const trendSelect = document.getElementById('trend-mode');
-        const trend = trendSelect ? String(trendSelect.value || 'daily') : 'daily';
+        const trend = String(this.trendMode || 'daily');
 
         const f = this.getFilterValues();
         const params = new URLSearchParams();
@@ -1863,9 +1880,10 @@ const AnalyticsDashboardPage = {
         const csv = document.getElementById('download-csv');
         const pdf = document.getElementById('download-pdf');
         const overduePdf = document.getElementById('download-critical-overdue-pdf');
+        const trendHistoryPdf = document.getElementById('download-trend-history-pdf');
         const hint = document.getElementById('download-hint');
 
-        if (!csv && !pdf && !overduePdf) return;
+        if (!csv && !pdf && !overduePdf && !trendHistoryPdf) return;
 
         const f = this.getFilterValues();
 
@@ -1884,6 +1902,7 @@ const AnalyticsDashboardPage = {
 
         if (csv) csv.href = build('xlsx');
         if (pdf) pdf.href = build('pdf');
+        if (trendHistoryPdf) trendHistoryPdf.href = build('trend_history_pdf');
 
         if (overduePdf) {
             const params = new URLSearchParams();
@@ -1944,6 +1963,7 @@ const AnalyticsDashboardPage = {
             this.renderKpis(payload);
             this.renderResolutionQuality(payload);
             this.renderOverdue(payload);
+            this.renderTrendHistoryCards(payload);
             this.renderCharts(payload);
             this.renderInsights(payload);
             this.setDownloadLinks(payload);
@@ -1954,9 +1974,63 @@ const AnalyticsDashboardPage = {
             this.renderOverdue({ overdue: { rows: [] } });
             this.renderKpis({ kpis: {} });
             this.renderResolutionQuality({});
+            this.renderTrendHistoryCards({});
             this.clearInsights();
             if (this.isDeepAnalytics) this.renderAdvanced({});
         }
+    },
+
+    renderTrendHistoryCards(payload) {
+        const summary = payload && payload.trend_history_summary ? payload.trend_history_summary : {};
+        const stage = payload && payload.stage_durations ? payload.stage_durations : {};
+
+        const avgDays = summary.avg_resolution_days;
+        const avgText = avgDays == null ? 'N/A' : `${Number(avgDays).toFixed(1)} Days`;
+        this.setTextById('trend-history-resolution-time', avgText);
+
+        let deltaText = 'No prior period available for comparison.';
+        if (summary.avg_resolution_delta_days != null) {
+            const delta = Number(summary.avg_resolution_delta_days) || 0;
+            if (Math.abs(delta) < 0.05) deltaText = 'No meaningful change versus the prior period.';
+            else if (delta < 0) deltaText = `↓ ${Math.abs(delta).toFixed(1)} days faster versus previous period`;
+            else deltaText = `↑ ${Math.abs(delta).toFixed(1)} days slower versus previous period`;
+        }
+        this.setTextById('trend-history-resolution-delta', deltaText);
+
+        const compliance = summary.deadline_success_rate;
+        const rateText = compliance == null ? 'N/A' : `${Number(compliance).toFixed(1)}%`;
+        this.setTextById('trend-history-deadline-rate', rateText);
+
+        const target = Number(summary.deadline_target_rate || 95) || 95;
+        const pct = compliance == null ? 0 : Math.max(0, Math.min(100, (Number(compliance) / target) * 100));
+        const progress = document.getElementById('trend-history-deadline-progress');
+        if (progress) progress.style.width = `${pct}%`;
+        const targetText = compliance == null
+            ? `Target ${target.toFixed(0)}% alignment unavailable for this period.`
+            : `${Math.max(0, target - Number(compliance)).toFixed(1)}% remaining to reach ${target.toFixed(0)}% target`;
+        this.setTextById('trend-history-deadline-target', targetText);
+
+        this.setTextById('trend-history-peak-window', summary.peak_activity_window || 'No activity window detected');
+        this.setTextById('trend-history-peak-load', summary.peak_activity_volume != null
+            ? `${Number(summary.peak_activity_volume) || 0} reports recorded in this recurring time block`
+            : 'Insufficient data for load profiling in this period');
+
+        const stageValues = {
+            pending: Number(stage.pending_hours) || 0,
+            review: Number(stage.under_review_hours) || 0,
+            final: Number(stage.final_fix_hours) || 0,
+        };
+        const maxStage = Math.max(stageValues.pending, stageValues.review, stageValues.final, 1);
+        const renderStage = (name, value) => {
+            const fill = document.getElementById(`trend-history-stage-${name}-fill`);
+            const valueEl = document.getElementById(`trend-history-stage-${name}-value`);
+            const pctWidth = value > 0 ? Math.max(8, (value / maxStage) * 100) : 0;
+            if (fill) fill.style.width = `${pctWidth}%`;
+            if (valueEl) valueEl.textContent = value > 0 ? `${value.toFixed(1)} hours` : 'N/A';
+        };
+        renderStage('pending', stageValues.pending);
+        renderStage('review', stageValues.review);
+        renderStage('final', stageValues.final);
     },
 
     renderKpis(payload) {
@@ -2120,15 +2194,14 @@ const AnalyticsDashboardPage = {
     },
 
     clearInsights() {
-        this.setTextById('subtitle-trend', '');
+        this.setTextById('subtitle-trend-history', '');
+        this.setTextById('subtitle-trend-history-context', '');
         this.setTextById('subtitle-severity', '');
         this.setTextById('subtitle-department', '');
-        this.setTextById('subtitle-timeline', '');
 
-        this.setCaption('caption-trend', '');
+        this.setCaption('caption-trend-history', '');
         this.setCaption('caption-severity', '');
         this.setCaption('caption-department', '');
-        this.setCaption('caption-timeline', '');
     },
 
     renderInsights(payload) {
@@ -2145,18 +2218,19 @@ const AnalyticsDashboardPage = {
                 ? 'Daily • last 7 days'
                 : trendMode === 'weekly'
                   ? 'Weekly • last 4 weeks'
-                  : 'Monthly • last 12 months';
-        this.setTextById('subtitle-trend', `${trendWindow}${filtersLine ? ' • ' + filtersLine : ''}`);
+                  : trendMode === 'monthly'
+                    ? 'Monthly • last 12 months'
+                    : 'Custom period';
+        this.setTextById('subtitle-trend-history', `${trendWindow}${filtersLine ? ' • ' + filtersLine : ''}`);
 
         const commonSubtitle = `${rangeLine}${filtersLine ? ' • ' + filtersLine : ''}`.trim();
         this.setTextById('subtitle-severity', commonSubtitle);
         this.setTextById('subtitle-department', commonSubtitle);
-        this.setTextById('subtitle-timeline', commonSubtitle);
+        this.setTextById('subtitle-trend-history-context', commonSubtitle);
 
-        this.setCaption('caption-trend', this.buildTrendCaption(payload.trend));
+        this.setCaption('caption-trend-history', this.buildTrendCaption(payload.trend));
         this.setCaption('caption-severity', this.buildSeverityCaption(payload.severity_distribution));
         this.setCaption('caption-department', this.buildDepartmentCaption(payload.by_department));
-        this.setCaption('caption-timeline', this.buildTimelineCaption(payload.timeline));
     },
 
     buildTrendCaption(trend) {
@@ -2181,7 +2255,10 @@ const AnalyticsDashboardPage = {
         const maxLabel = String(labels[maxIdx] ?? '');
         const mode = String(trend && trend.mode ? trend.mode : 'daily');
         const unit = mode === 'monthly' ? 'month' : mode === 'weekly' ? 'week' : 'day';
-        return `Peak activity was ${maxV} report(s) on ${maxLabel}. Average volume is ${avg.toFixed(1)} per ${unit}.`;
+        const rates = trend && Array.isArray(trend.success_rates) ? trend.success_rates : [];
+        const currentRate = rates.length ? Number(rates[rates.length - 1]) : NaN;
+        const rateText = Number.isFinite(currentRate) ? ` Current deadline success rate is ${currentRate.toFixed(1)}%.` : '';
+        return `Peak activity was ${maxV} report(s) on ${maxLabel}. Average volume is ${avg.toFixed(1)} per ${unit}.${rateText}`;
     },
 
     buildSeverityCaption(sev) {
@@ -2239,17 +2316,6 @@ const AnalyticsDashboardPage = {
         const ratio = second > 0 ? maxV / second : null;
         const ratioText = ratio ? ` (~${ratio.toFixed(1)}× the next highest)` : '';
         return `Top department is ${topDept} with ${maxV} report(s) (${pct}% of total)${ratioText}.`;
-    },
-
-    buildTimelineCaption(tl) {
-        const onTime = Number(tl && tl.fixed_on_time) || 0;
-        const late = Number(tl && tl.fixed_late) || 0;
-        const pending = Number(tl && tl.still_pending) || 0;
-        const total = onTime + late + pending;
-        if (total <= 0) return '';
-
-        const rate = tl && tl.compliance_rate != null ? String(tl.compliance_rate) + '%' : 'N/A';
-        return `Compliance is ${rate}. ${onTime} fixed on time, ${late} fixed late, and ${pending} still pending.`;
     },
 
     renderOverdue(payload) {
@@ -2725,10 +2791,9 @@ const AnalyticsDashboardPage = {
     },
 
     drawAllPlaceholders(message) {
-        this.drawPlaceholder(document.getElementById('chart-trend'), message);
+        this.drawPlaceholder(document.getElementById('chart-trend-history-performance'), message);
         this.drawPlaceholder(document.getElementById('chart-severity'), message);
         this.drawPlaceholder(document.getElementById('chart-department'), message);
-        this.drawPlaceholder(document.getElementById('chart-timeline'), message);
     },
 
     font(sizePx, weight) {
@@ -2877,45 +2942,35 @@ const AnalyticsDashboardPage = {
         this.drawTrend(payload.trend, payload.timeline);
         this.drawSeverity(payload.severity_distribution);
         this.drawDepartment(payload.by_department);
-        this.drawTimeline(payload.timeline);
         this.drawResolutionType(payload.resolution_breakdown);
     },
 
-     drawTrend(trend, timeline) {
-        const canvas = document.getElementById('chart-trend');
+     drawTrend(trend) {
+        const canvas = document.getElementById('chart-trend-history-performance');
         const s = this.clear(canvas);
         if (!s) return;
         const { ctx, w, h } = s;
 
         const labels = trend && Array.isArray(trend.labels) ? trend.labels : [];
         const values = trend && Array.isArray(trend.values) ? trend.values : [];
-        if (!labels.length || !values.length) {
+        const rates = trend && Array.isArray(trend.success_rates) ? trend.success_rates : [];
+        if (!labels.length || !values.length || !rates.length) {
             this.drawPlaceholder(canvas, 'No data');
             return;
         }
 
-        const padding = { l: 48, r: 18, t: 16, b: 34 };
+        const padding = { l: 54, r: 54, t: 20, b: 42 };
         const chartW = w - padding.l - padding.r;
         const chartH = h - padding.t - padding.b;
 
-        const maxV = Math.max(1, ...values.map((v) => Number(v) || 0));
-        const yMax = Math.ceil(maxV * 1.15);
+        const n = Math.min(labels.length, values.length, rates.length);
+        const volume = values.slice(0, n).map((v) => Number(v) || 0);
+        const success = rates.slice(0, n).map((v) => Number(v) || 0);
+        const maxV = Math.max(1, ...volume);
+        const yMax = Math.max(1, Math.ceil(maxV * 1.2));
 
-        // Chart area backdrop (subtle + premium)
         ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,0.08)';
-        ctx.shadowBlur = 18;
-        ctx.shadowOffsetY = 6;
-        const bg = ctx.createLinearGradient(0, padding.t, 0, padding.t + chartH);
-        bg.addColorStop(0, this.cssHsl('--muted', 0.25));
-        bg.addColorStop(1, this.cssHsl('--muted', 0.12));
-        ctx.fillStyle = bg;
-        this.fillRoundedRect(ctx, padding.l, padding.t, chartW, chartH, 10);
-        ctx.restore();
-
-        // Grid
-        ctx.save();
-        ctx.strokeStyle = this.cssHsl('--border', 0.75);
+        ctx.strokeStyle = this.cssHsl('--border', 0.7);
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
         for (let i = 0; i <= 4; i++) {
@@ -2927,7 +2982,7 @@ const AnalyticsDashboardPage = {
         }
         ctx.restore();
 
-        // Y labels
+        // Left axis labels (report volume)
         ctx.fillStyle = this.cssHsl('--muted-foreground');
         ctx.font = this.font(11, 500);
         ctx.textAlign = 'right';
@@ -2938,111 +2993,73 @@ const AnalyticsDashboardPage = {
             ctx.fillText(String(v), padding.l - 6, y);
         }
 
-        const n = Math.min(labels.length, values.length);
-        const xStep = n > 1 ? chartW / (n - 1) : chartW;
-        const xAt = (i) => padding.l + xStep * i;
-        const yAt = (v) => padding.t + chartH * (1 - v / yMax);
-
-        const pts = [];
-        for (let i = 0; i < n; i++) {
-            const v = Number(values[i]) || 0;
-            pts.push({ x: xAt(i), y: yAt(v), v });
+        // Right axis labels (success rate)
+        ctx.textAlign = 'left';
+        for (let i = 0; i <= 4; i++) {
+            const pct = Math.round(100 * (1 - i / 4));
+            const y = padding.t + (chartH * i) / 4;
+            ctx.fillText(`${pct}%`, w - padding.r + 6, y);
         }
 
-        // Line + area fill
-        const strokeGrad = ctx.createLinearGradient(0, padding.t, 0, padding.t + chartH);
-        strokeGrad.addColorStop(0, this.cssHsl('--primary'));
-        strokeGrad.addColorStop(1, this.cssHsl('--primary-dark'));
+        const slotW = chartW / n;
+        const barW = Math.max(8, Math.min(24, slotW * 0.48));
+        const xCenter = (i) => padding.l + slotW * i + slotW / 2;
+        const yVolume = (v) => padding.t + chartH * (1 - v / yMax);
+        const yRate = (v) => padding.t + chartH * (1 - Math.max(0, Math.min(100, v)) / 100);
 
+        // Bars: report volume
+        const barGrad = ctx.createLinearGradient(0, padding.t, 0, padding.t + chartH);
+        barGrad.addColorStop(0, 'rgba(30, 64, 175, 0.95)');
+        barGrad.addColorStop(1, 'rgba(14, 116, 144, 0.85)');
+        for (let i = 0; i < n; i++) {
+            const x = xCenter(i) - barW / 2;
+            const y = yVolume(volume[i]);
+            const bh = padding.t + chartH - y;
+            ctx.save();
+            ctx.shadowColor = 'rgba(15, 23, 42, 0.16)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetY = 4;
+            ctx.fillStyle = barGrad;
+            this.fillRoundedRect(ctx, x, y, barW, Math.max(2, bh), 6);
+            ctx.restore();
+        }
+
+        // Line: deadline success rate
+        const points = [];
+        for (let i = 0; i < n; i++) points.push({ x: xCenter(i), y: yRate(success[i]) });
         const fillGrad = ctx.createLinearGradient(0, padding.t, 0, padding.t + chartH);
-        fillGrad.addColorStop(0, this.cssHsl('--primary', 0.2));
-        fillGrad.addColorStop(1, this.cssHsl('--primary', 0.0));
-
-        // Area (smoothed)
+        fillGrad.addColorStop(0, 'rgba(16, 185, 129, 0.20)');
+        fillGrad.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
         ctx.save();
-        this.smoothLinePath(ctx, pts);
-        ctx.lineTo(pts[pts.length - 1].x, padding.t + chartH);
-        ctx.lineTo(pts[0].x, padding.t + chartH);
+        this.smoothLinePath(ctx, points);
+        ctx.lineTo(points[points.length - 1].x, padding.t + chartH);
+        ctx.lineTo(points[0].x, padding.t + chartH);
         ctx.closePath();
         ctx.fillStyle = fillGrad;
         ctx.fill();
         ctx.restore();
 
-        // Stroke (draw again for crisp line)
         ctx.save();
-        // soft glow under the line
-        ctx.shadowColor = this.cssHsl('--primary', 0.35);
-        ctx.shadowBlur = 18;
-        ctx.shadowOffsetY = 6;
-        ctx.strokeStyle = this.cssHsl('--primary', 0.25);
-        ctx.lineWidth = 6;
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.95)';
+        ctx.lineWidth = 2.8;
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
-        this.smoothLinePath(ctx, pts);
-        ctx.stroke();
-
-        // main line
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = strokeGrad;
-        ctx.lineWidth = 2.5;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        this.smoothLinePath(ctx, pts);
+        this.smoothLinePath(ctx, points);
         ctx.stroke();
         ctx.restore();
 
-        // Points
+        // Line points
         for (let i = 0; i < n; i++) {
-            const x = pts[i].x;
-            const y = pts[i].y;
-
-            // outer ring
+            const x = points[i].x;
+            const y = points[i].y;
             ctx.beginPath();
-            ctx.arc(x, y, 4.2, 0, Math.PI * 2);
+            ctx.arc(x, y, 4.5, 0, Math.PI * 2);
             ctx.fillStyle = this.cssHsl('--card');
             ctx.fill();
-
-            // inner dot
             ctx.beginPath();
-            ctx.arc(x, y, 2.7, 0, Math.PI * 2);
-            ctx.fillStyle = this.cssHsl('--primary');
+            ctx.arc(x, y, 2.8, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.95)';
             ctx.fill();
-        }
-
-        // Emphasize latest point
-        const last = pts[pts.length - 1];
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(last.x, last.y, 7.5, 0, Math.PI * 2);
-        ctx.fillStyle = this.cssHsl('--primary', 0.16);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(last.x, last.y, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = this.cssHsl('--primary');
-        ctx.fill();
-        ctx.restore();
-
-        if (this.trendSlaOverlay && timeline) {
-            const compliance = Number(timeline && timeline.compliance_rate);
-            if (Number.isFinite(compliance)) {
-                const y2 = padding.t + chartH * (1 - Math.max(0, Math.min(100, compliance)) / 100);
-                ctx.save();
-                ctx.setLineDash([6, 4]);
-                ctx.strokeStyle = this.cssHsl('--success', 0.85);
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(padding.l, y2);
-                ctx.lineTo(w - padding.r, y2);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.fillStyle = this.cssHsl('--success');
-                ctx.font = this.font(11, 700);
-                ctx.textAlign = 'right';
-                ctx.textBaseline = 'bottom';
-                ctx.fillText(`Service Level Agreement ${compliance.toFixed(1)}%`, w - padding.r, y2 - 4);
-                ctx.restore();
-            }
         }
 
         // X labels
@@ -3051,10 +3068,9 @@ const AnalyticsDashboardPage = {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
 
-        // Reduce label density for long series
         const step = n > 8 ? Math.ceil(n / 7) : 1;
         for (let i = 0; i < n; i += step) {
-            ctx.fillText(String(labels[i] ?? ''), xAt(i), padding.t + chartH + 8);
+            ctx.fillText(String(labels[i] ?? ''), xCenter(i), padding.t + chartH + 9);
         }
     },
 
