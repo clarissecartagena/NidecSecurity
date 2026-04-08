@@ -1197,6 +1197,10 @@ body {
     color: hsl(var(--primary));
 }
 
+.security-quick-action-card {
+    --table-accent: var(--primary);
+}
+
 /* Metric List Modal — uses shared report-modal-header / modal-close-btn / btn classes */
 
 /* Table Container */

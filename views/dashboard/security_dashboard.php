@@ -136,7 +136,7 @@
 
             <!-- Final Checking Panel -->
             <div class="col-lg-4">
-                <div class="table-container table-card security-quick-action-card mb-3" style="--table-accent: var(--primary)">
+                <div class="table-container table-card security-quick-action-card mb-3">
                     <div class="px-3 pt-3 pb-2 border-b d-flex align-items-center justify-content-between gap-2">
                         <div class="d-flex align-items-center gap-2">
                             <span class="quick-action-icon"><i class="bi bi-lightning-charge-fill"></i></span>
