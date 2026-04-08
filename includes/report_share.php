@@ -107,6 +107,7 @@ function report_share_generate_token(string $reportNo, int $ttlSeconds = 604800)
     }
 
     $path = report_share_token_store_path();
+    // c+ = read/write, create if missing, keep existing content intact.
     $handle = fopen($path, 'c+');
     if ($handle === false) {
         throw new RuntimeException('Unable to open report share token store.');
@@ -131,7 +132,7 @@ function report_share_generate_token(string $reportNo, int $ttlSeconds = 604800)
         // (by expiry) and drop older entries to avoid unbounded growth.
         if (count($store) > REPORT_SHARE_MAX_TOKENS) {
             uasort($store, static function ($a, $b): int {
-                return (int) ($a['expires_at'] ?? 0) <=> (int) ($b['expires_at'] ?? 0);
+                return ($a['expires_at'] ?? 0) <=> ($b['expires_at'] ?? 0);
             });
             $store = array_slice($store, -REPORT_SHARE_MAX_TOKENS, null, true);
         }
@@ -154,6 +155,7 @@ function report_share_validate_token(string $token, ?string $expectedReportNo = 
     }
 
     $path = report_share_token_store_path();
+    // c+ = read/write, create if missing, keep existing content intact.
     $handle = fopen($path, 'c+');
     if ($handle === false) {
         throw new RuntimeException('Unable to open report share token store.');

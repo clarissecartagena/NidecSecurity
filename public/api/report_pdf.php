@@ -11,7 +11,7 @@ $shareToken = trim((string) ($_GET['share_token'] ?? ''));
 if ($shareToken !== '' && $previewToken !== '') {
     http_response_code(400);
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['error' => 'Cannot use share_token and preview_token simultaneously']);
+    echo json_encode(['error' => 'Cannot use share_token and preview_token together. Use share_token for shared links and preview_token for submit preview only.']);
     exit();
 }
 

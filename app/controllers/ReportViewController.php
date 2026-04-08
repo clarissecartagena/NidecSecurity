@@ -24,10 +24,17 @@ class ReportViewController extends BaseController
             }
 
             $pdfUrl = app_url(
-                'api/report_pdf.php?id=' .
-                    urlencode($reportNo) .
-                    '&preview=1&share_token=' .
-                    urlencode($shareToken),
+                'api/report_pdf.php?' .
+                    http_build_query(
+                        [
+                            'id' => $reportNo,
+                            'preview' => '1',
+                            'share_token' => $shareToken,
+                        ],
+                        '',
+                        '&',
+                        PHP_QUERY_RFC3986,
+                    ),
             );
             header('Location: ' . $pdfUrl);
             exit();
