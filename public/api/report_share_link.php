@@ -24,7 +24,7 @@ if (!in_array($role, $allowedRoles, true)) {
 }
 
 $reportNo = trim((string) ($_GET['id'] ?? ''));
-if ($reportNo === '' || !preg_match('/^[A-Za-z0-9\-_.]+$/', $reportNo) || strlen($reportNo) > 50) {
+if ($reportNo === '' || !preg_match('/^[A-Za-z0-9][A-Za-z0-9\-_.]*$/', $reportNo) || strlen($reportNo) > 50) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Invalid report id']);
     exit();

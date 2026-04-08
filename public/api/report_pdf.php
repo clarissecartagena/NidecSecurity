@@ -8,6 +8,13 @@ $reportNo = trim((string) ($_GET['id'] ?? ''));
 $previewToken = trim((string) ($_GET['preview_token'] ?? ''));
 $shareToken = trim((string) ($_GET['share_token'] ?? ''));
 
+if ($shareToken !== '' && $previewToken !== '') {
+    http_response_code(400);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['error' => 'Cannot use share_token and preview_token simultaneously']);
+    exit();
+}
+
 $isSharedAccess = false;
 if ($shareToken !== '') {
     $shareData = report_share_validate_token($shareToken, $reportNo !== '' ? $reportNo : null);
@@ -42,13 +49,6 @@ if (!$isSharedAccess) {
         echo json_encode(['error' => 'Forbidden']);
         exit();
     }
-}
-
-if ($isSharedAccess && $previewToken !== '') {
-    http_response_code(400);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['error' => 'Cannot use share_token and preview_token simultaneously']);
-    exit();
 }
 
 if ($previewToken !== '') {
