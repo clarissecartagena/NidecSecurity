@@ -2,56 +2,6 @@
 
 
 <main class="main-content">
-    <style>
-        .security-metric-grid .security-metric-card {
-            min-height: 128px;
-            border: none;
-            border-radius: 12px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            overflow: hidden;
-        }
-
-        .security-metric-grid .security-metric-overlay-icon {
-            position: absolute;
-            top: -10px;
-            left: -14px;
-            font-size: 5.2rem;
-            opacity: 0.1;
-            z-index: 1;
-        }
-
-        .security-metric-grid .security-metric-value {
-            font-size: 2.55rem;
-            font-weight: 800;
-            line-height: 1;
-            z-index: 2;
-        }
-
-        .security-metric-grid .security-metric-value.value-zero {
-            opacity: 0.35;
-            font-weight: 600;
-        }
-
-        .security-metric-grid .security-metric-footer {
-            z-index: 2;
-            margin-top: auto;
-            text-align: left;
-        }
-
-        .security-quick-action-card .quick-action-icon {
-            width: 2.25rem;
-            height: 2.25rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 999px;
-            background-color: hsl(var(--primary) / 0.12);
-            color: hsl(var(--primary));
-        }
-    </style>
     <div class="animate-fade-in">
         <div class="mb-4">
             <h1 class="h4 fw-bold text-foreground mb-1"><i class="bi bi-shield-fill me-2 text-primary"></i>Security Dashboard</h1>
