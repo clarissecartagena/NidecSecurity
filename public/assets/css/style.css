@@ -1152,7 +1152,10 @@ body {
     /* Tuned to fit two text lines + large value consistently across breakpoints */
     --security-metric-min-height: 128px;
     --security-metric-overlay-size: 5.2rem;
+    /* Keeps numeric emphasis strong while preserving spacing with the overlay icon */
     --security-metric-value-size: 2.55rem;
+    --security-metric-overlay-top: -0.625rem;
+    --security-metric-overlay-left: -0.875rem;
 }
 
 .security-metric-grid .security-metric-card {
@@ -1168,8 +1171,8 @@ body {
 
 .security-metric-grid .security-metric-overlay-icon {
     position: absolute;
-    top: -10px;
-    left: -14px;
+    top: var(--security-metric-overlay-top);
+    left: var(--security-metric-overlay-left);
     font-size: var(--security-metric-overlay-size);
     opacity: 0.1;
     z-index: 1;
