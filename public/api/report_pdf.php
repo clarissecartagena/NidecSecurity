@@ -1,27 +1,55 @@
 <?php
 require_once __DIR__ . '/../../includes/config.php';
-
-if (!isAuthenticated()) {
-    http_response_code(401);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['error' => 'Unauthorized']);
-    exit();
-}
-
-$user = getUser();
-$role = (string) ($user['role'] ?? '');
-$allowedRoles = ['ga_manager', 'ga_staff', 'security', 'department', 'pic'];
-if (!in_array($role, $allowedRoles, true)) {
-    http_response_code(403);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['error' => 'Forbidden']);
-    exit();
-}
+require_once __DIR__ . '/../../includes/report_share.php';
 
 $report = null;
 $evidence = [];
 $reportNo = trim((string) ($_GET['id'] ?? ''));
 $previewToken = trim((string) ($_GET['preview_token'] ?? ''));
+$shareToken = trim((string) ($_GET['share_token'] ?? ''));
+
+$isSharedAccess = false;
+if ($shareToken !== '') {
+    $shareData = report_share_validate_token($shareToken, $reportNo !== '' ? $reportNo : null);
+    if (!$shareData) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'Invalid or expired share link']);
+        exit();
+    }
+    $isSharedAccess = true;
+    if ($reportNo === '') {
+        $reportNo = (string) ($shareData['report_no'] ?? '');
+    }
+}
+
+$user = null;
+$role = '';
+if (!$isSharedAccess) {
+    if (!isAuthenticated()) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'Unauthorized']);
+        exit();
+    }
+
+    $user = getUser();
+    $role = (string) ($user['role'] ?? '');
+    $allowedRoles = ['ga_manager', 'ga_staff', 'security', 'department', 'pic'];
+    if (!in_array($role, $allowedRoles, true)) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'Forbidden']);
+        exit();
+    }
+}
+
+if ($isSharedAccess && $previewToken !== '') {
+    http_response_code(400);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['error' => 'Unsupported token combination']);
+    exit();
+}
 
 if ($previewToken !== '') {
     $pool = $_SESSION['submit_report_pdf_preview'] ?? [];
@@ -63,12 +91,13 @@ if ($previewToken !== '') {
         exit();
     }
 
-    $userDepartmentId = (int) ($user['department_id'] ?? 0);
+    $userDepartmentId = (int) (($user['department_id'] ?? 0));
 
     $whereExtra = '';
     $params = [$reportNo];
 
-    if ($role === 'security') {
+    if ($isSharedAccess) {
+    } elseif ($role === 'security') {
     } elseif ($role === 'department' || $role === 'pic') {
         if ($userDepartmentId <= 0) {
             http_response_code(403);

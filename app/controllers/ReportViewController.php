@@ -7,6 +7,31 @@ class ReportViewController extends BaseController
     public function show(): void
     {
         require_once __DIR__ . '/../../includes/config.php';
+        require_once __DIR__ . '/../../includes/report_share.php';
+
+        $shareToken = trim((string) ($_GET['share_token'] ?? ''));
+        if ($shareToken !== '') {
+            $tokenData = report_share_validate_token($shareToken);
+            if (!$tokenData) {
+                http_response_code(403);
+                die('Invalid or expired share link');
+            }
+
+            $reportNo = (string) ($tokenData['report_no'] ?? '');
+            if ($reportNo === '') {
+                http_response_code(404);
+                die('Report not found');
+            }
+
+            $pdfUrl = app_url(
+                'api/report_pdf.php?id=' .
+                    urlencode($reportNo) .
+                    '&preview=1&share_token=' .
+                    urlencode($shareToken),
+            );
+            header('Location: ' . $pdfUrl);
+            exit();
+        }
 
         if (!isAuthenticated()) {
             header('Location: ' . app_url('login.php'));

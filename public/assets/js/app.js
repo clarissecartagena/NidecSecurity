@@ -3459,28 +3459,36 @@ const ReportModal = {
         }
 
         if (this.copyLinkBtn) {
-            this.copyLinkBtn.addEventListener('click', (e) => {
+            this.copyLinkBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 if (!this.currentReportNo) return;
-                const path = appUrl('view-report.php?id=' + encodeURIComponent(String(this.currentReportNo)));
-                // Always produce a full absolute URL so it works when pasted into a new tab
-                // or shared with another machine.
-                const url = path.startsWith('http') ? path : window.location.origin + path;
-                navigator.clipboard
-                    .writeText(url)
-                    .then(() => {
-                        const origHtml = this.copyLinkBtn.innerHTML;
-                        this.copyLinkBtn.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i>';
-                        this.copyLinkBtn.title = 'Link copied!';
-                        setTimeout(() => {
-                            this.copyLinkBtn.innerHTML = origHtml;
-                            this.copyLinkBtn.title = 'Copy shareable link';
-                        }, 2000);
-                    })
-                    .catch(() => {
-                        // Fallback: prompt so user can copy manually
-                        window.prompt('Copy this link:', url);
-                    });
+                let url = '';
+                try {
+                    const shareUrl = appUrl('api/report_share_link.php?id=' + encodeURIComponent(String(this.currentReportNo)));
+                    const response = await fetch(shareUrl, { credentials: 'same-origin' });
+                    const payload = await response.json();
+                    if (!response.ok || !payload || payload.success !== true || !payload.url) {
+                        throw new Error('Unable to generate share link');
+                    }
+                    url = String(payload.url);
+                } catch (_) {
+                    const path = appUrl('view-report.php?id=' + encodeURIComponent(String(this.currentReportNo)));
+                    url = path.startsWith('http') ? path : window.location.origin + path;
+                }
+
+                try {
+                    await navigator.clipboard.writeText(url);
+                    const origHtml = this.copyLinkBtn.innerHTML;
+                    this.copyLinkBtn.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i>';
+                    this.copyLinkBtn.title = 'Link copied!';
+                    setTimeout(() => {
+                        this.copyLinkBtn.innerHTML = origHtml;
+                        this.copyLinkBtn.title = 'Copy shareable link';
+                    }, 2000);
+                } catch (_) {
+                    // Fallback: prompt so user can copy manually
+                    window.prompt('Copy this link:', url);
+                }
             });
         }
 
