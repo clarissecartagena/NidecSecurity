@@ -975,12 +975,12 @@ function get_overdue_rows(array $f): array
         " AND r.status IN ('under_department_fix', 'returned_to_department') AND r.fix_due_date IS NOT NULL AND NOW() > r.fix_due_date";
 
     return db_fetch_all(
-        "SELECT r.report_no, d.name AS department, r.fix_due_date,
+        "SELECT r.report_no, COALESCE(NULLIF(TRIM(r.subject), ''), 'N/A') AS subject, d.name AS department, r.fix_due_date, r.building, r.location,
                 DATEDIFF(NOW(), r.fix_due_date) AS days_overdue
          FROM reports r
          JOIN departments d ON d.id = r.responsible_department_id
          $whereSql
-         ORDER BY r.fix_due_date ASC
+          ORDER BY days_overdue DESC, r.fix_due_date ASC
          LIMIT 100",
         $types,
         $params,
@@ -1667,6 +1667,12 @@ function get_comparison_data(array $f): array
 
 $f = build_filters($_GET, $user, $role);
 
+$tab = trim((string) ($_GET['tab'] ?? 'metrics'));
+$allowedTabs = ['metrics', 'trends', 'departmental', 'incident', 'records'];
+if (!in_array($tab, $allowedTabs, true)) {
+    $tab = 'metrics';
+}
+
 $departmentStats = get_department_stats($f);
 $resolutionBreakdown = get_resolution_breakdown($f);
 $slaStats = get_sla_stats($f);
@@ -1731,6 +1737,7 @@ $payload = [
         'department_id' => (int) $f['department_id'],
         'severity' => $f['severity'],
         'status' => $f['status'],
+        'tab' => $tab,
         'role' => $role,
         'department_restricted' => (bool) $f['is_department_restricted'],
     ],
