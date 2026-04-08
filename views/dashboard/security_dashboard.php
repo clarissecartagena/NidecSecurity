@@ -2,6 +2,56 @@
 
 
 <main class="main-content">
+    <style>
+        .security-metric-grid .security-metric-card {
+            min-height: 128px;
+            border: none;
+            border-radius: 12px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .security-metric-grid .security-metric-overlay-icon {
+            position: absolute;
+            top: -10px;
+            left: -14px;
+            font-size: 5.2rem;
+            opacity: 0.1;
+            z-index: 1;
+        }
+
+        .security-metric-grid .security-metric-value {
+            font-size: 2.55rem;
+            font-weight: 800;
+            line-height: 1;
+            z-index: 2;
+        }
+
+        .security-metric-grid .security-metric-value.value-zero {
+            opacity: 0.35;
+            font-weight: 600;
+        }
+
+        .security-metric-grid .security-metric-footer {
+            z-index: 2;
+            margin-top: auto;
+            text-align: left;
+        }
+
+        .security-quick-action-card .quick-action-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background-color: hsl(var(--primary) / 0.12);
+            color: hsl(var(--primary));
+        }
+    </style>
     <div class="animate-fade-in">
         <div class="mb-4">
             <h1 class="h4 fw-bold text-foreground mb-1"><i class="bi bi-shield-fill me-2 text-primary"></i>Security Dashboard</h1>
@@ -15,68 +65,56 @@
 
     
         <!-- Metric Cards -->
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-4 security-metric-grid">
             <div class="col-sm-6 col-xl-3">
-                <button type="button" class="metric-card metric-card-split metric-accent-info w-100">
-                    <div class="metric-card-left">
-                        <div class="metric-card-icon"><i class="bi bi-send"></i></div>
-                        <div class="metric-card-text">
-                            <p class="text-sm fw-semibold text-foreground">Today's Reports</p>
-                            <p class="text-xs text-muted-foreground">Submitted today</p>
-                        </div>
+                <?php $submittedToday = (int) $stats['submitted_today']; ?>
+                <button type="button" class="metric-card security-metric-card metric-accent-info w-100 p-3">
+                    <i class="bi bi-send security-metric-overlay-icon" aria-hidden="true"></i>
+                    <div class="d-flex justify-content-end">
+                        <div class="security-metric-value text-foreground <?= $submittedToday === 0 ? 'value-zero' : '' ?>"><?= $submittedToday ?></div>
                     </div>
-                    <div class="metric-card-right">
-                        <div class="metric-card-value fs-2 fw-bold text-foreground"><?= (int) $stats[
-                            'submitted_today'
-                        ] ?></div>
+                    <div class="security-metric-footer">
+                        <p class="text-sm fw-semibold text-foreground">Today's Reports</p>
+                        <p class="text-xs text-muted-foreground">Submitted today</p>
                     </div>
                 </button>
             </div>
             <div class="col-sm-6 col-xl-3">
-                <button type="button" class="metric-card metric-card-split metric-accent-warning w-100">
-                    <div class="metric-card-left">
-                        <div class="metric-card-icon"><i class="bi bi-clock"></i></div>
-                        <div class="metric-card-text">
-                            <p class="text-sm fw-semibold text-foreground">Pending GA Review</p>
-                            <p class="text-xs text-muted-foreground">Awaiting GA staff</p>
-                        </div>
+                <?php $waitingGaReview = (int) $stats['waiting_ga_review']; ?>
+                <button type="button" class="metric-card security-metric-card metric-accent-warning w-100 p-3">
+                    <i class="bi bi-clock security-metric-overlay-icon" aria-hidden="true"></i>
+                    <div class="d-flex justify-content-end">
+                        <div class="security-metric-value text-foreground <?= $waitingGaReview === 0 ? 'value-zero' : '' ?>"><?= $waitingGaReview ?></div>
                     </div>
-                    <div class="metric-card-right">
-                        <div class="metric-card-value fs-2 fw-bold text-foreground"><?= (int) $stats[
-                            'waiting_ga_review'
-                        ] ?></div>
+                    <div class="security-metric-footer">
+                        <p class="text-sm fw-semibold text-foreground">Pending GA Review</p>
+                        <p class="text-xs text-muted-foreground">Awaiting GA staff</p>
                     </div>
                 </button>
             </div>
             <div class="col-sm-6 col-xl-3">
-                <button type="button" class="metric-card metric-card-split metric-accent-destructive w-100">
-                    <div class="metric-card-left">
-                        <div class="metric-card-icon"><i class="bi bi-shield-check"></i></div>
-                        <div class="metric-card-text">
-                            <p class="text-sm fw-semibold text-foreground">Final Check</p>
-                            <p class="text-xs text-muted-foreground">Needs your final sign-off</p>
-                        </div>
+                <?php $waitingFinalCheck = (int) $stats['waiting_final_check']; ?>
+                <button type="button" class="metric-card security-metric-card metric-accent-destructive w-100 p-3">
+                    <i class="bi bi-shield-check security-metric-overlay-icon" aria-hidden="true"></i>
+                    <div class="d-flex justify-content-end">
+                        <div class="security-metric-value text-foreground <?= $waitingFinalCheck === 0 ? 'value-zero' : '' ?>"><?= $waitingFinalCheck ?></div>
                     </div>
-                    <div class="metric-card-right">
-                        <div class="metric-card-value fs-2 fw-bold text-foreground"><?= (int) $stats[
-                            'waiting_final_check'
-                        ] ?></div>
+                    <div class="security-metric-footer">
+                        <p class="text-sm fw-semibold text-foreground">Final Check</p>
+                        <p class="text-xs text-muted-foreground">Needs your final sign-off</p>
                     </div>
                 </button>
             </div>
             <div class="col-sm-6 col-xl-3">
-                <button type="button" class="metric-card metric-card-split metric-accent-success w-100">
-                    <div class="metric-card-left">
-                        <div class="metric-card-icon"><i class="bi bi-check-circle"></i></div>
-                        <div class="metric-card-text">
-                            <p class="text-sm fw-semibold text-foreground">Resolved</p>
-                            <p class="text-xs text-muted-foreground">Fully resolved reports</p>
-                        </div>
+                <?php $resolvedCount = (int) $stats['resolved']; ?>
+                <button type="button" class="metric-card security-metric-card metric-accent-success w-100 p-3">
+                    <i class="bi bi-check-circle security-metric-overlay-icon" aria-hidden="true"></i>
+                    <div class="d-flex justify-content-end">
+                        <div class="security-metric-value text-foreground <?= $resolvedCount === 0 ? 'value-zero' : '' ?>"><?= $resolvedCount ?></div>
                     </div>
-                    <div class="metric-card-right">
-                        <div class="metric-card-value fs-2 fw-bold text-foreground"><?= (int) $stats[
-                            'resolved'
-                        ] ?></div>
+                    <div class="security-metric-footer">
+                        <p class="text-sm fw-semibold text-foreground">Resolved</p>
+                        <p class="text-xs text-muted-foreground">Fully resolved reports</p>
                     </div>
                 </button>
             </div>
@@ -148,7 +186,22 @@
 
             <!-- Final Checking Panel -->
             <div class="col-lg-4">
-                <div class="table-container table-card h-100" style="--table-accent: var(--destructive)">
+                <div class="table-container table-card security-quick-action-card mb-3" style="--table-accent: var(--primary)">
+                    <div class="px-3 pt-3 pb-2 border-b d-flex align-items-center justify-content-between gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="quick-action-icon"><i class="bi bi-lightning-charge-fill"></i></span>
+                            <h3 class="font-semibold text-foreground mb-0">Quick Action</h3>
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-xs text-muted-foreground mb-3">Need to file something now? Submit a new security report in one step.</p>
+                        <a class="btn btn-primary w-100" href="<?= htmlspecialchars(app_url('submit-report.php')) ?>">
+                            <i class="bi bi-plus-circle me-1"></i> Submit Security Report
+                        </a>
+                    </div>
+                </div>
+
+                <div class="table-container table-card" style="--table-accent: var(--destructive)">
                     <div class="px-3 pt-3 pb-2 border-b">
                         <h3 class="font-semibold text-foreground">Final Checking</h3>
                         <p class="text-xs text-muted-foreground">Reports awaiting your sign-off</p>
