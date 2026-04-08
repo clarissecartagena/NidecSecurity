@@ -4,6 +4,10 @@ require_once __DIR__ . '/../../includes/report_share.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+if (!defined('SHARE_LINK_TTL_SECONDS')) {
+    define('SHARE_LINK_TTL_SECONDS', 604800);
+}
+
 if (!isAuthenticated()) {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Unauthorized']);
@@ -47,7 +51,8 @@ if (!$row) {
 }
 
 try {
-    $token = report_share_generate_token($reportNo, 604800);
+    $token = report_share_generate_token($reportNo, SHARE_LINK_TTL_SECONDS);
+    $expiresAt = time() + SHARE_LINK_TTL_SECONDS;
     $path = app_url('view-report.php?share_token=' . urlencode($token));
     $url = $path;
     if (!preg_match('#^https?://#i', $path)) {
@@ -56,12 +61,11 @@ try {
         $url = $scheme . '://' . $host . $path;
     }
 
-    $tokenData = report_share_validate_token($token);
     echo json_encode(
         [
             'success' => true,
             'url' => $url,
-            'expires_at' => (int) ($tokenData['expires_at'] ?? 0),
+            'expires_at' => $expiresAt,
         ],
         JSON_UNESCAPED_SLASHES,
     );

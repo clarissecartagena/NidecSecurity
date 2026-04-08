@@ -1,5 +1,12 @@
 <?php
 
+if (!defined('REPORT_SHARE_TOKEN_BYTES')) {
+    define('REPORT_SHARE_TOKEN_BYTES', 24);
+}
+if (!defined('REPORT_SHARE_TOKEN_HEX_LENGTH')) {
+    define('REPORT_SHARE_TOKEN_HEX_LENGTH', REPORT_SHARE_TOKEN_BYTES * 2);
+}
+
 function report_share_token_store_path(): string
 {
     $storageDir = dirname(__DIR__) . '/storage';
@@ -57,7 +64,7 @@ function report_share_generate_token(string $reportNo, int $ttlSeconds = 604800)
     }
 
     $store = report_share_prune_store(report_share_read_store());
-    $token = bin2hex(random_bytes(24));
+    $token = bin2hex(random_bytes(REPORT_SHARE_TOKEN_BYTES));
     $now = time();
 
     $store[$token] = [
@@ -81,7 +88,7 @@ function report_share_generate_token(string $reportNo, int $ttlSeconds = 604800)
 
 function report_share_validate_token(string $token, ?string $expectedReportNo = null): ?array
 {
-    if (!preg_match('/^[a-f0-9]{48}$/', $token)) {
+    if (!preg_match('/^[a-f0-9]{' . REPORT_SHARE_TOKEN_HEX_LENGTH . '}$/', $token)) {
         return null;
     }
 
