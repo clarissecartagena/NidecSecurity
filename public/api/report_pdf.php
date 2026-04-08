@@ -47,7 +47,7 @@ if (!$isSharedAccess) {
 if ($isSharedAccess && $previewToken !== '') {
     http_response_code(400);
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['error' => 'Unsupported token combination']);
+    echo json_encode(['error' => 'Cannot use share_token and preview_token simultaneously']);
     exit();
 }
 
@@ -91,7 +91,7 @@ if ($previewToken !== '') {
         exit();
     }
 
-    $userDepartmentId = (int) (($user['department_id'] ?? 0));
+    $userDepartmentId = (int) ($user['department_id'] ?? 0);
 
     $whereExtra = '';
     $params = [$reportNo];

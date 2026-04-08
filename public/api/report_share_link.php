@@ -46,21 +46,26 @@ if (!$row) {
     exit();
 }
 
-$token = report_share_generate_token($reportNo, 604800);
-$path = app_url('view-report.php?share_token=' . urlencode($token));
-$url = $path;
-if (!preg_match('#^https?://#i', $path)) {
-    $scheme = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
-    $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
-    $url = $scheme . '://' . $host . $path;
-}
+try {
+    $token = report_share_generate_token($reportNo, 604800);
+    $path = app_url('view-report.php?share_token=' . urlencode($token));
+    $url = $path;
+    if (!preg_match('#^https?://#i', $path)) {
+        $scheme = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $url = $scheme . '://' . $host . $path;
+    }
 
-$tokenData = report_share_validate_token($token);
-echo json_encode(
-    [
-        'success' => true,
-        'url' => $url,
-        'expires_at' => (int) ($tokenData['expires_at'] ?? 0),
-    ],
-    JSON_UNESCAPED_SLASHES,
-);
+    $tokenData = report_share_validate_token($token);
+    echo json_encode(
+        [
+            'success' => true,
+            'url' => $url,
+            'expires_at' => (int) ($tokenData['expires_at'] ?? 0),
+        ],
+        JSON_UNESCAPED_SLASHES,
+    );
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Unable to generate share link']);
+}

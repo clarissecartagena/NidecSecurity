@@ -4,7 +4,9 @@ function report_share_token_store_path(): string
 {
     $storageDir = dirname(__DIR__) . '/storage';
     if (!is_dir($storageDir)) {
-        @mkdir($storageDir, 0755, true);
+        if (!mkdir($storageDir, 0755, true) && !is_dir($storageDir)) {
+            throw new RuntimeException('Unable to create report share token storage directory.');
+        }
     }
     return $storageDir . '/report_share_tokens.json';
 }
@@ -28,7 +30,10 @@ function report_share_read_store(): array
 function report_share_write_store(array $store): void
 {
     $path = report_share_token_store_path();
-    @file_put_contents($path, json_encode($store, JSON_UNESCAPED_SLASHES), LOCK_EX);
+    $result = file_put_contents($path, json_encode($store, JSON_UNESCAPED_SLASHES), LOCK_EX);
+    if ($result === false) {
+        throw new RuntimeException('Unable to persist report share tokens.');
+    }
 }
 
 function report_share_prune_store(array $store): array
@@ -61,6 +66,8 @@ function report_share_generate_token(string $reportNo, int $ttlSeconds = 604800)
         'expires_at' => $now + max(300, $ttlSeconds),
     ];
 
+    // Keep storage bounded: if many links are generated, keep the most recent 5000
+    // (by expiry) and drop older entries to avoid unbounded growth.
     if (count($store) > 5000) {
         uasort($store, static function ($a, $b): int {
             return (int) ($a['expires_at'] ?? 0) <=> (int) ($b['expires_at'] ?? 0);
