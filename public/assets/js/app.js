@@ -1406,11 +1406,24 @@ const AnalyticsDashboardPage = {
     lastPayload: null,
     resizeTimer: null,
     activeTab: 'metrics',
+    trendSlaOverlay: true,
     isDeepAnalytics: false,
     deptSort: { key: 'total_reports', dir: 'desc' },
     detailsSort: { key: 'submitted_at', dir: 'desc' },
     detailsPage: 1,
     detailsPageSize: 10,
+    intelExplainData: {
+        departmentRanking: [],
+        hotspotRanking: [],
+        quality: {
+            onTime: 0,
+            late: 0,
+            overdueOpen: 0,
+            measuredTotal: 0,
+            score: null,
+            status: 'No data yet',
+        },
+    },
 
     init() {
         this.root = document.getElementById('analytics-dashboard');
@@ -1419,6 +1432,7 @@ const AnalyticsDashboardPage = {
 
         this.initTabs();
         if (this.isDeepAnalytics) this.initAdvancedInteractions();
+        this.initIntelExplainer();
 
         this.apiUrl = this.root.getAttribute('data-api-url') || appUrl('api/analytics.php');
 
@@ -1448,6 +1462,26 @@ const AnalyticsDashboardPage = {
             trendSelect.addEventListener('change', () => this.loadAndRender());
         }
 
+
+        const trendSlaOverlay = document.getElementById('trend-sla-overlay');
+        if (trendSlaOverlay) {
+            const updateTrendSlaStatus = () => {
+                const status = document.getElementById('trend-sla-overlay-status');
+                if (status) {
+                    status.textContent = this.trendSlaOverlay
+                        ? 'Service Level Agreement compliance overlay is enabled - displaying compliance threshold on trend chart'
+                        : 'Service Level Agreement compliance overlay is disabled';
+                }
+            };
+            trendSlaOverlay.addEventListener('change', () => {
+                this.trendSlaOverlay = !!trendSlaOverlay.checked;
+                updateTrendSlaStatus();
+                if (this.lastPayload) this.renderCharts(this.lastPayload);
+            });
+            this.trendSlaOverlay = !!trendSlaOverlay.checked;
+            updateTrendSlaStatus();
+        }
+
         // Initial load
         this.loadAndRender();
 
@@ -1468,7 +1502,7 @@ const AnalyticsDashboardPage = {
         const tabsBar = document.getElementById('analytics-tabs');
         if (!tabsBar) return;
 
-        const buttons = Array.from(tabsBar.querySelectorAll('.tab-btn[data-tab]'));
+        const buttons = Array.from(tabsBar.querySelectorAll('.tab-btn[data-tab-target]'));
         if (!buttons.length) return;
 
         const showTab = (tabName, opts) => {
@@ -1482,8 +1516,15 @@ const AnalyticsDashboardPage = {
                 else p.classList.add('hidden');
             });
 
+            const tabOnlyBlocks = Array.from(this.root.querySelectorAll('[data-tab-only]'));
+            tabOnlyBlocks.forEach((block) => {
+                const target = String(block.getAttribute('data-tab-only') || '').trim();
+                if (target === name) block.classList.remove('hidden');
+                else block.classList.add('hidden');
+            });
+
             buttons.forEach((btn) => {
-                const bName = String(btn.getAttribute('data-tab') || '').trim();
+                const bName = String(btn.getAttribute('data-tab-target') || '').trim();
                 const isActive = bName === name;
                 btn.classList.toggle('active', isActive);
                 btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
@@ -1499,9 +1540,9 @@ const AnalyticsDashboardPage = {
         };
 
         tabsBar.addEventListener('click', (e) => {
-            const btn = e.target && e.target.closest ? e.target.closest('.tab-btn[data-tab]') : null;
+            const btn = e.target && e.target.closest ? e.target.closest('.tab-btn[data-tab-target]') : null;
             if (!btn) return;
-            const name = btn.getAttribute('data-tab');
+            const name = btn.getAttribute('data-tab-target');
             showTab(name, { focus: false });
         });
 
@@ -1511,7 +1552,7 @@ const AnalyticsDashboardPage = {
 
             const current =
                 document.activeElement && document.activeElement.closest
-                    ? document.activeElement.closest('.tab-btn[data-tab]')
+                    ? document.activeElement.closest('.tab-btn[data-tab-target]')
                     : null;
             const idx = current ? buttons.indexOf(current) : buttons.findIndex((b) => b.classList.contains('active'));
 
@@ -1525,13 +1566,13 @@ const AnalyticsDashboardPage = {
             if (key === 'Home') next = 0;
             if (key === 'End') next = buttons.length - 1;
 
-            const name = buttons[next].getAttribute('data-tab');
+            const name = buttons[next].getAttribute('data-tab-target');
             showTab(name, { focus: true });
         });
 
         // Ensure a consistent initial state.
         const initialBtn = buttons.find((b) => b.classList.contains('active')) || buttons[0];
-        showTab(initialBtn.getAttribute('data-tab'), { focus: false });
+       showTab(initialBtn.getAttribute('data-tab-target'), { focus: false });
     },
 
     initAdvancedInteractions() {
@@ -1564,22 +1605,6 @@ const AnalyticsDashboardPage = {
             });
         });
 
-        const byDeptToggle = document.getElementById('resolution-by-dept-toggle');
-        if (byDeptToggle) {
-            byDeptToggle.addEventListener('change', () => {
-                const overall = document.getElementById('resolution-breakdown-overall');
-                const perDept = document.getElementById('resolution-breakdown-department');
-                if (!overall || !perDept) return;
-                if (byDeptToggle.checked) {
-                    overall.classList.add('hidden');
-                    perDept.classList.remove('hidden');
-                } else {
-                    perDept.classList.add('hidden');
-                    overall.classList.remove('hidden');
-                }
-            });
-        }
-
         const prevBtn = document.getElementById('detailed-prev');
         const nextBtn = document.getElementById('detailed-next');
         if (prevBtn) {
@@ -1597,8 +1622,170 @@ const AnalyticsDashboardPage = {
         }
     },
 
+    initIntelExplainer() {
+        const cards = Array.from(document.querySelectorAll('[data-intel-modal-target]'));
+        cards.forEach((card) => {
+            const open = () => {
+                const type = String(card.getAttribute('data-intel-modal-target') || '').trim();
+                if (!type) return;
+                this.openIntelModal(type);
+            };
+            card.addEventListener('click', (e) => {
+                const target = e.target && e.target.closest ? e.target.closest('a,button,[data-no-intel-modal]') : null;
+                if (target) return;
+                open();
+            });
+            card.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                open();
+            });
+        });
+
+        const overlay = document.getElementById('analytics-explainer-modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) this.closeIntelModal();
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') this.closeIntelModal();
+        });
+    },
+
+    openIntelModal(type) {
+        const overlay = document.getElementById('analytics-explainer-modal-overlay');
+        const titleEl = document.getElementById('analytics-explainer-title');
+        const subtitleEl = document.getElementById('analytics-explainer-subtitle');
+        const contentEl = document.getElementById('analytics-explainer-content');
+        if (!overlay || !titleEl || !subtitleEl || !contentEl) return;
+
+        const departmentRanking = Array.isArray(this.intelExplainData.departmentRanking)
+            ? this.intelExplainData.departmentRanking
+            : [];
+        const hotspotRanking = Array.isArray(this.intelExplainData.hotspotRanking) ? this.intelExplainData.hotspotRanking : [];
+        const quality = this.intelExplainData.quality || {};
+
+        let title = 'Card Explanation';
+        let subtitle = '';
+        let html = '';
+
+        if (type === 'hotspot') {
+            title = 'Hotspot';
+            subtitle = 'Locations with recurring maintenance delays based on overdue reports.';
+            const rowsHtml = hotspotRanking.length
+                ? hotspotRanking
+                      .slice(0, 7)
+                      .map(
+                          (row, index) => `
+                            <tr>
+                                <td class="font-medium">${index + 1}</td>
+                                <td>${this.escapeHtml(String(row.label || 'Unknown Location'))}</td>
+                                <td>${Number(row.count) || 0}</td>
+                            </tr>`,
+                      )
+                      .join('')
+                : '<tr><td colspan="3" class="analytics-explainer-empty">No overdue location data in the selected filters.</td></tr>';
+
+            html = `
+                <div class="analytics-explainer-card">
+                    <div class="analytics-explainer-card-title">How it is computed</div>
+                    <p class="mb-0">The dashboard groups overdue reports by location (Entity + Location), counts how many delayed cases exist per location, then ranks them from highest to lowest. The top row is shown as the current hotspot.</p>
+                </div>
+                <div class="analytics-explainer-card">
+                    <div class="analytics-explainer-card-title">Top Hotspot Locations</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead><tr><th>Rank</th><th>Location</th><th>Overdue Cases</th></tr></thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'offender') {
+            title = 'Top Offender';
+            subtitle = 'Departments with the highest overdue report count.';
+            const rowsHtml = departmentRanking.length
+                ? departmentRanking
+                      .slice(0, 7)
+                      .map(
+                          (row, index) => `
+                            <tr>
+                                <td class="font-medium">${index + 1}</td>
+                                <td>${this.escapeHtml(String(row.department || 'Unassigned'))}</td>
+                                <td>${Number(row.count) || 0}</td>
+                            </tr>`,
+                      )
+                      .join('')
+                : '<tr><td colspan="3" class="analytics-explainer-empty">No overdue department data in the selected filters.</td></tr>';
+
+            html = `
+                <div class="analytics-explainer-card">
+                    <div class="analytics-explainer-card-title">How it is computed</div>
+                    <p class="mb-0">The dashboard filters to overdue reports, groups them by assigned department, and ranks departments by overdue count. The highest-ranked department appears on the Top Offender card.</p>
+                </div>
+                <div class="analytics-explainer-card">
+                    <div class="analytics-explainer-card-title">Top Departments by Overdue Reports</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead><tr><th>Rank</th><th>Department</th><th>Overdue Reports</th></tr></thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        } else {
+            const onTime = Number(quality.onTime) || 0;
+            const late = Number(quality.late) || 0;
+            const overdueOpen = Number(quality.overdueOpen) || 0;
+            const measuredTotal = Number(quality.measuredTotal) || 0;
+            const scoreText = quality.score == null ? 'N/A' : `${quality.score}%`;
+
+            title = 'On-Time Quality';
+            subtitle = 'Score explaining on-time fixes versus late and overdue work.';
+            html = `
+                <div class="analytics-explainer-card">
+                    <div class="analytics-explainer-card-title">How score is computed</div>
+                    <p class="mb-2">Formula: <strong>On-Time Score = (Fixed On Time ÷ (Fixed On Time + Fixed Late + Open Overdue)) × 100</strong></p>
+                    <p class="mb-0">This means the score improves when more reports are fixed on time and decreases when late fixes or overdue open reports increase.</p>
+                </div>
+                <div class="analytics-explainer-card">
+                    <div class="analytics-explainer-card-title">Current breakdown</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <tbody>
+                                <tr><td>Fixed On Time</td><td class="text-end fw-bold">${onTime}</td></tr>
+                                <tr><td>Fixed Late</td><td class="text-end fw-bold">${late}</td></tr>
+                                <tr><td>Open Overdue</td><td class="text-end fw-bold">${overdueOpen}</td></tr>
+                                <tr><td>Total Measured</td><td class="text-end fw-bold">${measuredTotal}</td></tr>
+                                <tr><td>On-Time Score</td><td class="text-end fw-bold">${scoreText}</td></tr>
+                                <tr><td>Status</td><td class="text-end fw-bold">${this.escapeHtml(String(quality.status || 'No data yet'))}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        titleEl.textContent = title;
+        subtitleEl.textContent = subtitle;
+        contentEl.innerHTML = html;
+        overlay.classList.remove('hidden');
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
+    },
+
+    closeIntelModal() {
+        const overlay = document.getElementById('analytics-explainer-modal-overlay');
+        if (!overlay) return;
+        overlay.classList.add('hidden');
+        overlay.classList.remove('active');
+        overlay.setAttribute('aria-hidden', 'true');
+    },
+
     isChartTab(tabName) {
-        return ['trend', 'severity', 'department', 'timeline'].includes(String(tabName || ''));
+        return ['trends', 'departmental', 'incident', 'records'].includes(String(tabName || ''));
     },
 
     cssHsl(varName, alpha) {
@@ -1675,9 +1862,10 @@ const AnalyticsDashboardPage = {
     setDownloadLinks(payload) {
         const csv = document.getElementById('download-csv');
         const pdf = document.getElementById('download-pdf');
+        const overduePdf = document.getElementById('download-critical-overdue-pdf');
         const hint = document.getElementById('download-hint');
 
-        if (!csv && !pdf) return;
+        if (!csv && !pdf && !overduePdf) return;
 
         const f = this.getFilterValues();
 
@@ -1696,6 +1884,19 @@ const AnalyticsDashboardPage = {
 
         if (csv) csv.href = build('xlsx');
         if (pdf) pdf.href = build('pdf');
+
+        if (overduePdf) {
+            const params = new URLSearchParams();
+            if (f.start_date) params.set('start_date', f.start_date);
+            if (f.end_date) params.set('end_date', f.end_date);
+            if (f.building) params.set('building', f.building);
+            if (f.department_id) params.set('department_id', f.department_id);
+            if (f.severity) params.set('severity', f.severity);
+            if (f.status) params.set('status', f.status);
+            params.set('action', 'download');
+
+            overduePdf.href = `${appUrl('api/critical_overdue_pdf.php')}?${params.toString()}`;
+        }
 
         if (hint && payload && payload.filters) {
             const start = payload.filters.start_date || '';
@@ -1741,6 +1942,7 @@ const AnalyticsDashboardPage = {
             }
 
             this.renderKpis(payload);
+            this.renderResolutionQuality(payload);
             this.renderOverdue(payload);
             this.renderCharts(payload);
             this.renderInsights(payload);
@@ -1751,6 +1953,7 @@ const AnalyticsDashboardPage = {
             this.drawAllPlaceholders('No data');
             this.renderOverdue({ overdue: { rows: [] } });
             this.renderKpis({ kpis: {} });
+            this.renderResolutionQuality({});
             this.clearInsights();
             if (this.isDeepAnalytics) this.renderAdvanced({});
         }
@@ -1790,6 +1993,82 @@ const AnalyticsDashboardPage = {
             rangeEl.textContent =
                 start && end ? `Range: ${start} to ${end}${filterLine ? ' • ' + filterLine : ''}` : filterLine || '';
         }
+    },
+
+    renderResolutionQuality(payload) {
+        const timeline = payload && payload.timeline ? payload.timeline : {};
+        const kpis = payload && payload.kpis ? payload.kpis : {};
+
+        const onTime = Number(timeline.fixed_on_time) || 0;
+        const late = Number(timeline.fixed_late) || 0;
+        const overdueOpen = Number(kpis.overdue_reports) || 0;
+        const measuredTotal = onTime + late + overdueOpen;
+
+        const scoreEl = document.getElementById('health-score');
+        const progressEl = document.getElementById('health-progress');
+        const statusEl = document.getElementById('health-status');
+        const overdueEl = document.getElementById('health-overdue-count');
+
+        if (overdueEl) overdueEl.textContent = String(overdueOpen);
+
+        const score = measuredTotal > 0 ? Math.round((onTime / measuredTotal) * 100) : null;
+
+        if (scoreEl) {
+            scoreEl.textContent = score == null ? 'N/A' : `${score}%`;
+        }
+
+        if (progressEl) {
+            const width = score == null ? 0 : Math.max(0, Math.min(100, score));
+            progressEl.style.width = `${width}%`;
+            progressEl.classList.remove('success', 'warning', 'danger');
+
+            if (score == null) {
+                progressEl.classList.add('warning');
+            } else if (score >= 85 && overdueOpen === 0) {
+                progressEl.classList.add('success');
+            } else if (score >= 60) {
+                progressEl.classList.add('warning');
+            } else {
+                progressEl.classList.add('danger');
+            }
+        }
+
+        let statusLabel = 'No data yet';
+        if (statusEl) {
+            statusEl.classList.remove('text-success', 'text-warning', 'text-danger', 'text-muted');
+
+            if (score == null) {
+                statusLabel = 'No data yet';
+                statusEl.textContent = statusLabel;
+                statusEl.classList.add('text-muted');
+            } else if (score >= 85 && overdueOpen === 0) {
+                statusLabel = 'Optimal';
+                statusEl.textContent = statusLabel;
+                statusEl.classList.add('text-success');
+            } else if (score >= 60) {
+                statusLabel = 'Monitor';
+                statusEl.textContent = statusLabel;
+                statusEl.classList.add('text-warning');
+            } else {
+                statusLabel = 'Critical';
+                statusEl.textContent = statusLabel;
+                statusEl.classList.add('text-danger');
+            }
+        } else {
+            if (score == null) statusLabel = 'No data yet';
+            else if (score >= 85 && overdueOpen === 0) statusLabel = 'Optimal';
+            else if (score >= 60) statusLabel = 'Monitor';
+            else statusLabel = 'Critical';
+        }
+
+        this.intelExplainData.quality = {
+            onTime,
+            late,
+            overdueOpen,
+            measuredTotal,
+            score,
+            status: statusLabel,
+        };
     },
 
     setTextById(id, value) {
@@ -1977,29 +2256,115 @@ const AnalyticsDashboardPage = {
         const tbody = document.getElementById('overdue-body');
         if (!tbody) return;
 
+        const formatDueDate = (raw) => {
+            const txt = String(raw || '').trim();
+            if (!txt) return '—';
+            const date = new Date(txt);
+            if (!Number.isNaN(date.getTime())) {
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: '2-digit',
+                });
+            }
+            return txt;
+        };
+
         const rows = payload && payload.overdue && Array.isArray(payload.overdue.rows) ? payload.overdue.rows : [];
         if (!rows.length) {
             tbody.innerHTML =
-                '<tr><td colspan="4" class="text-center text-muted-foreground">No overdue reports.</td></tr>';
+                '<tr><td colspan="5" class="text-center text-muted-foreground">No overdue reports.</td></tr>';
+            this.setTextById('intel-top-offender-name', 'No value yet');
+            this.setTextById('intel-top-offender-desc',
+                'Identifies the department requiring immediate supervisor intervention.');
+            this.setTextById('intel-hotspot-name', 'No value yet');
+            this.setTextById('intel-hotspot-desc',
+                'Pinpoints physical locations with recurring maintenance delays.');
+            this.intelExplainData.departmentRanking = [];
+            this.intelExplainData.hotspotRanking = [];
             return;
         }
 
         tbody.innerHTML = rows
             .map((r) => {
                 const reportNo = r.report_no || '—';
+                const subject = r.subject || '—';
                 const dept = r.department || '—';
-                const due = r.fix_due_date || '—';
-                const days = r.days_overdue == null ? '—' : String(r.days_overdue);
+                const due = formatDueDate(r.fix_due_date || '');
+                const daysNum = Number(r.days_overdue);
+                const days = Number.isFinite(daysNum) ? String(daysNum) : '—';
                 return `
         <tr>
-          <td class="font-mono text-xs">${this.escapeHtml(String(reportNo))}</td>
-          <td class="text-muted-foreground">${this.escapeHtml(String(dept))}</td>
-          <td class="text-muted-foreground">${this.escapeHtml(String(due))}</td>
-          <td class="font-medium">${this.escapeHtml(String(days))}</td>
+                    <td class="font-mono text-xs report-id-cell">${this.escapeHtml(String(reportNo))}</td>
+                    <td class="subject-cell">${this.escapeHtml(String(subject))}</td>
+                    <td class="department-cell">${this.escapeHtml(String(dept))}</td>
+                    <td class="due-date-cell">${this.escapeHtml(String(due))}</td>
+                    <td class="font-medium overdue-days-cell">${this.escapeHtml(String(days))}</td>
         </tr>
       `;
             })
             .join('');
+
+        const deptAgg = rows.reduce((acc, r) => {
+            const d = String(r.department || 'Unassigned');
+            if (!acc[d]) acc[d] = 0;
+            acc[d] += 1;
+            return acc;
+        }, {});
+        this.intelExplainData.departmentRanking = Object.entries(deptAgg)
+            .map(([department, count]) => ({ department, count: Number(count) || 0 }))
+            .sort((a, b) => b.count - a.count);
+        const topDept = Object.entries(deptAgg).sort((a, b) => b[1] - a[1])[0] || null;
+        if (topDept) {
+            const deptName = String(topDept[0] || '').trim() || 'Unassigned';
+            const reportCount = Number(topDept[1]) || 0;
+            const label = reportCount === 1 ? 'report' : 'reports';
+            this.setTextById('intel-top-offender-name', deptName);
+            this.setTextById(
+                'intel-top-offender-desc',
+                `The top offender, ${deptName}, has ${reportCount} overdue ${label}.`
+            );
+        } else {
+            this.setTextById('intel-top-offender-name', 'No value yet');
+            this.setTextById('intel-top-offender-desc',
+                'Identifies the department requiring immediate supervisor intervention.');
+        }
+
+        const hot = rows.reduce((acc, r) => {
+            const entity = String(r.building || '').trim();
+            const location = String(r.location || '').trim();
+            let label = 'Unknown Location';
+
+            if (entity && location) {
+                label = entity.toLowerCase() === location.toLowerCase() ? entity : `${entity} - ${location}`;
+            } else if (entity) {
+                label = entity;
+            } else if (location) {
+                label = location;
+            }
+
+            if (!acc[label]) acc[label] = 0;
+            acc[label] += 1;
+            return acc;
+        }, {});
+        this.intelExplainData.hotspotRanking = Object.entries(hot)
+            .map(([label, count]) => ({ label, count: Number(count) || 0 }))
+            .sort((a, b) => b.count - a.count);
+        const hotEntry = Object.entries(hot).sort((a, b) => Number(b[1]) - Number(a[1]))[0] || null;
+        if (hotEntry) {
+            const locationName = String(hotEntry[0] || '').trim() || 'Unknown Location';
+            const delayCount = Number(hotEntry[1]) || 0;
+            const label = delayCount === 1 ? 'delay' : 'delays';
+            this.setTextById('intel-hotspot-name', locationName);
+            this.setTextById(
+                'intel-hotspot-desc',
+                `The ${locationName} have the most maintenance delays with ${delayCount} ${label}.`
+            );
+        } else {
+            this.setTextById('intel-hotspot-name', 'No value yet');
+            this.setTextById('intel-hotspot-desc',
+                'Pinpoints physical locations with recurring maintenance delays.');
+        }
     },
 
     renderAdvanced(payload) {
@@ -2036,7 +2401,7 @@ const AnalyticsDashboardPage = {
         const sorted = this.sortRows(rows || [], this.deptSort.key, this.deptSort.dir);
         if (!sorted.length) {
             body.innerHTML =
-                '<tr><td colspan="6" class="text-center text-muted-foreground">No department performance data.</td></tr>';
+                '<tr><td colspan="4" class="text-center text-muted-foreground">No department performance data.</td></tr>';
             return;
         }
 
@@ -2046,9 +2411,7 @@ const AnalyticsDashboardPage = {
             .map((r) => {
                 const total = Number(r.total_reports) || 0;
                 const avg = r.avg_resolution_days == null ? 'N/A' : Number(r.avg_resolution_days).toFixed(2);
-                const median = r.median_resolution_days == null ? 'N/A' : Number(r.median_resolution_days).toFixed(2);
                 const sla = r.sla_compliance == null ? 'N/A' : Number(r.sla_compliance).toFixed(1) + '%';
-                const overdue = Number(r.overdue_rate || 0).toFixed(1) + '%';
                 const pct = Math.max(2, Math.round((total / maxVolume) * 100));
                 return `
                     <tr>
@@ -2058,9 +2421,7 @@ const AnalyticsDashboardPage = {
                             <div class="metric-inline-bar"><span style="width:${pct}%"></span></div>
                         </td>
                         <td>${avg}</td>
-                        <td>${median}</td>
                         <td>${sla}</td>
-                        <td>${overdue}</td>
                     </tr>
                 `;
             })
@@ -2142,7 +2503,7 @@ const AnalyticsDashboardPage = {
         const rows = Array.isArray(data && data.worst_departments) ? data.worst_departments : [];
         if (!rows.length) {
             body.innerHTML =
-                '<tr><td colspan="5" class="text-center text-muted-foreground">No SLA violation data.</td></tr>';
+                '<tr><td colspan="5" class="text-center text-muted-foreground">No Service Level Agreement violation data.</td></tr>';
             return;
         }
 
@@ -2216,8 +2577,18 @@ const AnalyticsDashboardPage = {
     },
 
     renderRecurring(data) {
-        this.setTextById('reopen-rate', `${Number(data && data.reopened_rate).toFixed(1) || '0.0'}%`);
+        const rr = Number(data && data.reopened_rate);
+        const reopenRate = Number.isFinite(rr) ? rr : 0;
+        this.setTextById('reopen-rate', `${reopenRate.toFixed(1)}%`);
         this.setTextById('reopen-events', String(Number(data && data.reopen_events) || 0));
+
+        const gauge = document.getElementById('reopen-progress');
+        if (gauge) {
+            const w = Math.max(0, Math.min(100, reopenRate));
+            gauge.style.width = `${w}%`;
+            const parent = gauge.closest('.command-center-gauge');
+            if (parent) parent.setAttribute('aria-valuenow', String(Math.round(w)));
+        }
 
         const body = document.getElementById('recurring-categories-body');
         if (!body) return;
@@ -2327,7 +2698,7 @@ const AnalyticsDashboardPage = {
         const pieces = [];
         if (top) {
             pieces.push(
-                `${top.department} has the highest report volume (${top.total_reports}) with SLA ${top.sla_compliance == null ? 'N/A' : top.sla_compliance + '%'}.`,
+                `${top.department} has the highest report volume (${top.total_reports}) with Service Level Agreement compliance ${top.sla_compliance == null ? 'N/A' : top.sla_compliance + '%'}.`,
             );
         }
         if (slowest) {
@@ -2503,13 +2874,14 @@ const AnalyticsDashboardPage = {
 
     renderCharts(payload) {
         if (!payload) return;
-        this.drawTrend(payload.trend);
+        this.drawTrend(payload.trend, payload.timeline);
         this.drawSeverity(payload.severity_distribution);
         this.drawDepartment(payload.by_department);
         this.drawTimeline(payload.timeline);
+        this.drawResolutionType(payload.resolution_breakdown);
     },
 
-    drawTrend(trend) {
+     drawTrend(trend, timeline) {
         const canvas = document.getElementById('chart-trend');
         const s = this.clear(canvas);
         if (!s) return;
@@ -2650,6 +3022,28 @@ const AnalyticsDashboardPage = {
         ctx.fillStyle = this.cssHsl('--primary');
         ctx.fill();
         ctx.restore();
+
+        if (this.trendSlaOverlay && timeline) {
+            const compliance = Number(timeline && timeline.compliance_rate);
+            if (Number.isFinite(compliance)) {
+                const y2 = padding.t + chartH * (1 - Math.max(0, Math.min(100, compliance)) / 100);
+                ctx.save();
+                ctx.setLineDash([6, 4]);
+                ctx.strokeStyle = this.cssHsl('--success', 0.85);
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(padding.l, y2);
+                ctx.lineTo(w - padding.r, y2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = this.cssHsl('--success');
+                ctx.font = this.font(11, 700);
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(`Service Level Agreement ${compliance.toFixed(1)}%`, w - padding.r, y2 - 4);
+                ctx.restore();
+            }
+        }
 
         // X labels
         ctx.fillStyle = this.cssHsl('--muted-foreground');
@@ -2927,6 +3321,75 @@ const AnalyticsDashboardPage = {
             // (value drawn as pill)
         });
     },
+    
+    drawResolutionType(data) {
+        const canvas = document.getElementById('chart-resolution-type');
+        const s = this.clear(canvas);
+        if (!s) return;
+        const { ctx, w, h } = s;
+
+        const buckets = data && data.buckets ? data.buckets : {};
+        const values = [
+            Number(buckets['0_24_hours']) || 0,
+            Number(buckets['1_3_days']) || 0,
+            Number(buckets['3_7_days']) || 0,
+            Number(buckets['7_plus_days']) || 0,
+        ];
+        const labels = ['0-24 Hours', '1-3 Days', '3-7 Days', '7+ Days'];
+        const total = values.reduce((a, b) => a + b, 0);
+        if (total <= 0) {
+            this.drawPlaceholder(canvas, 'No data');
+            return;
+        }
+
+        const colors = [
+            this.cssHsl('--success'),
+            this.cssHsl('--primary'),
+            this.cssHsl('--warning'),
+            this.cssHsl('--destructive'),
+        ];
+        const cx = w / 2;
+        const cy = h / 2;
+        const r = Math.min(w, h) * 0.34;
+        const innerR = r * 0.58;
+        let start = -Math.PI / 2;
+
+        for (let i = 0; i < values.length; i++) {
+            const v = values[i];
+            if (!v) continue;
+            const ang = (v / total) * Math.PI * 2;
+            const end = start + ang;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, r, start, end);
+            ctx.closePath();
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.fill();
+            start = end;
+        }
+
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+
+        ctx.fillStyle = this.cssHsl('--foreground');
+        ctx.font = this.font(16, 700);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(total), cx, cy - 8);
+        ctx.fillStyle = this.cssHsl('--muted-foreground');
+        ctx.font = this.font(11, 500);
+        ctx.fillText('Resolved', cx, cy + 10);
+
+        const legend = labels
+            .map((l, i) => `<div class="legend-item"><span class="legend-swatch" style="background:${colors[i]}"></span><span class="legend-label">${this.escapeHtml(l)}</span><span class="legend-value">${values[i]}</span></div>`)
+            .join('');
+        const holder = document.getElementById('resolution-breakdown-overall');
+        if (holder) holder.innerHTML = `<div class="chart-legend">${legend}</div>`;
+    },
+
 };
 
 // Report Modal Controller
@@ -3756,28 +4219,55 @@ const SidebarCollapse = {
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-    // UI is a helper object; it may not expose an init() method
-    if (UI && typeof UI.init === 'function') UI.init();
-    Auth.init();
+    const safeInit = (label, fn) => {
+        try {
+            fn();
+        } catch (err) {
+            console.error(`[Init Error] ${label}:`, err);
+        }
+    };
 
-    SidebarCollapse.init();
+    // UI is a helper object; it may not expose an init() method
+    if (UI && typeof UI.init === 'function') safeInit('UI.init', () => UI.init());
+    safeInit('Auth.init', () => Auth.init());
+
+    safeInit('SidebarCollapse.init', () => SidebarCollapse.init());
+
+    if (document.getElementById('analytics-dashboard')) {
+        safeInit('AnalyticsDashboardPage.init', () => AnalyticsDashboardPage.init());
+    }
 
     // Initialize page-specific functions
-    if (document.getElementById('login-form')) LoginPage.init();
+    if (document.getElementById('login-form')) safeInit('LoginPage.init', () => LoginPage.init());
     // Dashboard page doesn't have a root #dashboard element; use a stable stat id instead
-    if (!window.NIDEC_SERVER_MODE && document.getElementById('stat-total')) DashboardPage.init();
-    if (document.getElementById('search-input')) ReportsPage.init();
-    if (!window.NIDEC_SERVER_MODE && document.getElementById('submit-report')) SubmitReportPage.init();
-    if (!window.NIDEC_SERVER_MODE && document.getElementById('ga-staff-review')) GAStaffReviewPage.init();
-    if (!window.NIDEC_SERVER_MODE && document.getElementById('ga-manager-approval')) GAManagerApprovalPage.init();
-    if (!window.NIDEC_SERVER_MODE && document.getElementById('department-action')) DepartmentActionPage.init();
-    if (!window.NIDEC_SERVER_MODE && document.getElementById('checking-reports')) FinalCheckingPage.init();
-    if (!window.NIDEC_SERVER_MODE && document.getElementById('users-table')) UserManagementPage.init();
-    if (!window.NIDEC_SERVER_MODE && document.getElementById('stats-category')) StatisticsPage.init();
-    if (document.getElementById('analytics-dashboard')) AnalyticsDashboardPage.init();
+    if (!window.NIDEC_SERVER_MODE && document.getElementById('stat-total')) {
+        safeInit('DashboardPage.init', () => DashboardPage.init());
+    }
+    if (document.getElementById('search-input')) safeInit('ReportsPage.init', () => ReportsPage.init());
+    if (!window.NIDEC_SERVER_MODE && document.getElementById('submit-report')) {
+        safeInit('SubmitReportPage.init', () => SubmitReportPage.init());
+    }
+    if (!window.NIDEC_SERVER_MODE && document.getElementById('ga-staff-review')) {
+        safeInit('GAStaffReviewPage.init', () => GAStaffReviewPage.init());
+    }
+    if (!window.NIDEC_SERVER_MODE && document.getElementById('ga-manager-approval')) {
+        safeInit('GAManagerApprovalPage.init', () => GAManagerApprovalPage.init());
+    }
+    if (!window.NIDEC_SERVER_MODE && document.getElementById('department-action')) {
+        safeInit('DepartmentActionPage.init', () => DepartmentActionPage.init());
+    }
+    if (!window.NIDEC_SERVER_MODE && document.getElementById('checking-reports')) {
+        safeInit('FinalCheckingPage.init', () => FinalCheckingPage.init());
+    }
+    if (!window.NIDEC_SERVER_MODE && document.getElementById('users-table')) {
+        safeInit('UserManagementPage.init', () => UserManagementPage.init());
+    }
+    if (!window.NIDEC_SERVER_MODE && document.getElementById('stats-category')) {
+        safeInit('StatisticsPage.init', () => StatisticsPage.init());
+    }
 
     // Initialize Report Modal (for all pages with report tables)
-    ReportModal.init();
+    safeInit('ReportModal.init', () => ReportModal.init());
 
     // Allow deep-link opening of a report modal (used by PDF report links).
     const openReportFromUrl = (() => {
@@ -3795,7 +4285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Notifications bell (server mode)
-    Notifications.init();
+    safeInit('Notifications.init', () => Notifications.init());
 
     // Topnav is rendered by PHP session; avoid overriding from JS.
 
